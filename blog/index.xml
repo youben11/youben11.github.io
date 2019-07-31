@@ -2,39 +2,39 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Blogs on Ayoub Benaissa</title>
-    <link>https://youben11.github.io/blog/</link>
+    <link>https://www.ayoub-benaissa.com/blog/</link>
     <description>Recent content in Blogs on Ayoub Benaissa</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 30 Jul 2019 22:00:00 +0100</lastBuildDate>
     
-	<atom:link href="https://youben11.github.io/blog/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://www.ayoub-benaissa.com/blog/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>MCTF Final 2019 writeup - Back to the old ways</title>
-      <link>https://youben11.github.io/blog/mctf-2019-back-to-the-old-days/</link>
+      <link>https://www.ayoub-benaissa.com/blog/mctf-2019-back-to-the-old-days/</link>
       <pubDate>Tue, 30 Jul 2019 22:00:00 +0100</pubDate>
       
-      <guid>https://youben11.github.io/blog/mctf-2019-back-to-the-old-days/</guid>
+      <guid>https://www.ayoub-benaissa.com/blog/mctf-2019-back-to-the-old-days/</guid>
       <description>There is a group of hackers that we&amp;rsquo;ve been trying to take down for a while, we had a spy among them but his cover was compromised, but he managed to leak a piece of code&amp;hellip;</description>
     </item>
     
     <item>
       <title>Feature Extraction and Detection of Malwares Using Machine Learning</title>
-      <link>https://youben11.github.io/blog/malware-revealer/</link>
+      <link>https://www.ayoub-benaissa.com/blog/malware-revealer/</link>
       <pubDate>Thu, 18 Jul 2019 18:00:00 +0100</pubDate>
       
-      <guid>https://youben11.github.io/blog/malware-revealer/</guid>
+      <guid>https://www.ayoub-benaissa.com/blog/malware-revealer/</guid>
       <description>Malicious softwares, or malwares in short, represent a growing threat on the information systems worldwide. Throughout years cyber-security specialists have been using&amp;hellip;</description>
     </item>
     
     <item>
       <title>Tackle Today&#39;s IT Challenges With Docker</title>
-      <link>https://youben11.github.io/blog/tackle-todays-it-challenges-with-docker/</link>
+      <link>https://www.ayoub-benaissa.com/blog/tackle-todays-it-challenges-with-docker/</link>
       <pubDate>Wed, 08 May 2019 16:27:31 +0100</pubDate>
       
-      <guid>https://youben11.github.io/blog/tackle-todays-it-challenges-with-docker/</guid>
+      <guid>https://www.ayoub-benaissa.com/blog/tackle-todays-it-challenges-with-docker/</guid>
       <description>In the IT world, a software product generally goes through a &lt;a href=&#34;https://sdarchitect.blog/2012/07/02/manufacturing-vs-software-supply-chains/&#34;&gt;Software Supply Chain&lt;/a&gt;, which is basically all the processes and methods used to deliver that product to the customers&amp;hellip;</description>
     </item>
     
