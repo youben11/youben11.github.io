@@ -6,10 +6,19 @@
     <description>Recent content in Blogs on Ayoub Benaissa</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 30 Jul 2019 22:00:00 +0100</lastBuildDate>
+    <lastBuildDate>Thu, 01 Aug 2019 18:00:00 +0100</lastBuildDate>
     
 	<atom:link href="https://www.ayoub-benaissa.com/blog/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Hack PySyft - Find bugs before the malicious guys</title>
+      <link>https://www.ayoub-benaissa.com/blog/hacking-pysyft/</link>
+      <pubDate>Thu, 01 Aug 2019 18:00:00 +0100</pubDate>
+      
+      <guid>https://www.ayoub-benaissa.com/blog/hacking-pysyft/</guid>
+      <description>On July 31st, 2019, Trask launched the Hack PySyft initiative, saying &amp;lsquo;Some day, when PySyft is deployed in production around the world, someone evil is going to try to hack PySyft and steal personal data&amp;hellip;</description>
+    </item>
     
     <item>
       <title>MCTF Final 2019 writeup - Back to the old ways</title>
