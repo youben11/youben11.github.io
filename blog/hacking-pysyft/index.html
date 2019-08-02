@@ -93,11 +93,11 @@
                     
 
 <p><span style="color: #BEBEBE">
-Starting from May 2019 I&rsquo;ve been part of the <a href="https://sites.google.com/udacity.com/secureprivateai-challenge/">Secure and Private AI Scholarship</a> made by Facebook and Udacity, the course was taught by <a href="http://twitter.com/iamtrask">Andrew Trask</a> and covered topics around privacy preserving deep learning, we also learned about <a href="https://github.com/OpenMined/PySyft">PySyft</a> and I had the chance to start contributing to this amazing project.
+Starting from May 2019 I&rsquo;ve been part of the <a href="https://sites.google.com/udacity.com/secureprivateai-challenge/">Secure and Private AI Scholarship</a> sponsored by Facebook, the course was taught by <a href="http://twitter.com/iamtrask">Andrew Trask</a> and covered topics around privacy preserving deep learning, we also learned about <a href="https://github.com/OpenMined/PySyft">PySyft</a> and I had the chance to start contributing to this amazing project.
 </span></p>
 
 <p><span style="color: #BEBEBE">
-On July 31st, 2019, Trask launched the <a href="https://github.com/OpenMined/PySyft/issues/2421">Hack PySyft</a> initiative, saying <code>'Some day, when PySyft is deployed in production around the world, someone evil is going to try to hack PySyft and steal personal data. This Issue is where we try to do it first.'</code> So the challenge was to hack PySyft (and fix it) before that attackers do. I got motivated and started bug hunting the next day. In the following of this post I will walk you through my approach to finding a way to steal remote private data and how I fixed it. If you want to check the fix directly, then you can find it <a href="https://github.com/OpenMined/PySyft/pull/2434">here</a>.
+On July 31st, 2019, Trask launched the <a href="https://github.com/OpenMined/PySyft/issues/2421">Hack PySyft</a> initiative, saying <code>'Some day, when PySyft is deployed in production around the world, someone evil is going to try to hack PySyft and steal personal data. This Issue is where we try to do it first.'</code> So the challenge was to hack PySyft (and fix it) before that attackers do. I got motivated and started bug hunting the next day. For the rest of this post I will walk you through my approach to finding a way to steal remote private data and how I fixed it. If you want to check the fix directly, then you can find it <a href="https://github.com/OpenMined/PySyft/pull/2434">here</a>.
 </span></p>
 
 <h2 id="the-context">The Context</h2>
@@ -130,7 +130,7 @@ In a normal scenario where we do federated learning among a group of workers, we
 </code></pre>
 
 <p><span style="color: #BEBEBE">
-So I started using the last version and changed my strategy, knowing that cloning the tensor will not keep the private attribute, I started trying cloning it, however calling clone() on my constructed pointer was always aborting the connection between my worker and the remote one due to an error that I wasn&rsquo;t able to explain since it works just fine with a tensor I sent myself, if anyone is interested then this path might also be interesting.
+So I started using the last version and changed my strategy, knowing that cloning the tensor will not keep the private attribute, I started trying to clone it, however calling clone() on my constructed pointer was always aborting the connection between my worker and the remote one due to an error that I wasn&rsquo;t able to explain since it works just fine with a tensor I sent myself, if anyone is interested then this path might also be interesting.
 </span></p>
 
 <p><span style="color: #BEBEBE">
@@ -178,13 +178,13 @@ The problem was that local private tensors shouldn&rsquo;t be used by remote one
 </span></p>
 
 <p><span style="color: #BEBEBE">
-Basically, instead of accessing the object with its id directly, we are now using get_obj() which is already secure and won&rsquo;t return a private tensor.
+Basically, instead of accessing the object with its id directly, we are now using get_obj() which is already secured and won&rsquo;t return a private tensor.
 </span></p>
 
 <h2 id="conclusion">Conclusion</h2>
 
 <p><span style="color: #BEBEBE">
-Exploring PySyft&rsquo;s code to find security bugs was a good way to learn about the project&rsquo;s internal like the kind of messages that are sent between workers and how a tensor is being manipulated remotely.
+Exploring PySyft&rsquo;s code to find security bugs was a good way to learn about the project&rsquo;s heart like the kind of messages that are sent between workers and how a tensor is being manipulated remotely.
 I hope you enjoyed this post and of course if you are a White Hat and can contribute to PySyft by finding and fixing security bugs then give it a shot ;)
 </span></p>
 
