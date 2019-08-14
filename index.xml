@@ -6,13 +6,22 @@
     <description>Recent content on Ayoub Benaissa</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 01 Aug 2019 18:00:00 +0100</lastBuildDate>
+    <lastBuildDate>Wed, 14 Aug 2019 23:00:00 +0100</lastBuildDate>
     
 	<atom:link href="https://www.ayoub-benaissa.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>Hack PySyft - Find bugs before the malicious guys</title>
+      <title>Understanding the Basics of Reinforcement Learning</title>
+      <link>https://www.ayoub-benaissa.com/blog/reinforcement-learning/</link>
+      <pubDate>Wed, 14 Aug 2019 23:00:00 +0100</pubDate>
+      
+      <guid>https://www.ayoub-benaissa.com/blog/reinforcement-learning/</guid>
+      <description>We will start with the story of Agent-S, someone that never got to the beach before, one day he was put into the center of the ocean, he don&amp;rsquo;t have any prior knowledge of how to swim, but he is scary&amp;hellip;</description>
+    </item>
+    
+    <item>
+      <title>Hack PySyft - Find Bugs Before the Malicious Guys</title>
       <link>https://www.ayoub-benaissa.com/blog/hacking-pysyft/</link>
       <pubDate>Thu, 01 Aug 2019 18:00:00 +0100</pubDate>
       
@@ -21,7 +30,7 @@
     </item>
     
     <item>
-      <title>MCTF Final 2019 writeup - Back to the old ways</title>
+      <title>MCTF Final 2019 Writeup - Back to the Old Ways</title>
       <link>https://www.ayoub-benaissa.com/blog/mctf-2019-back-to-the-old-days/</link>
       <pubDate>Tue, 30 Jul 2019 22:00:00 +0100</pubDate>
       
@@ -39,7 +48,7 @@
     </item>
     
     <item>
-      <title>Tackle Today&#39;s IT Challenges With Docker</title>
+      <title>Tackle Today&#39;s IT Challenges with Docker</title>
       <link>https://www.ayoub-benaissa.com/blog/tackle-todays-it-challenges-with-docker/</link>
       <pubDate>Wed, 08 May 2019 16:27:31 +0100</pubDate>
       
