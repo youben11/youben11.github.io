@@ -6,10 +6,19 @@
     <description>Recent content in Blogs on Ayoub Benaissa</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 14 Aug 2019 23:00:00 +0100</lastBuildDate>
+    <lastBuildDate>Mon, 16 Sep 2019 14:00:14 +0100</lastBuildDate>
     
 	<atom:link href="https://www.ayoub-benaissa.com/blog/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>CSAW&#39;19 CTF Quals Writeup - Fault Box</title>
+      <link>https://www.ayoub-benaissa.com/blog/csaw-quals19-fault-box/</link>
+      <pubDate>Mon, 16 Sep 2019 14:00:14 +0100</pubDate>
+      
+      <guid>https://www.ayoub-benaissa.com/blog/csaw-quals19-fault-box/</guid>
+      <description>Cyber Security Awareness Worldwide is the most comprehensive student-run cyber security event in the world, featuring nine competitions, 6 global hosts, workshops, and industry events.</description>
+    </item>
     
     <item>
       <title>Understanding the Basics of Reinforcement Learning</title>
