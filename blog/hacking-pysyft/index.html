@@ -120,14 +120,13 @@ I&rsquo;m actually running these workers on the same machine, but the same scena
 In a normal scenario where we do federated learning among a group of workers, we can use send() and recv() on tensors to move them around workers. When we send a tensor to a remote worker, we get a pointer referencing the transferred tensor on the remote machine, this pointer holds the id of the tensor and can be used to get it back or make remote operations on it (e.g addition). So the first thing that got into my mind was to construct a valid pointer referencing a private remote tensor since I know its id, this method worked just fine and I was able to get those private tensors, I even started posting on slack about it! Unfortunately, I was running an old version and Trask had already fixed that at that moment and private tensors weren&rsquo;t accessible anymore (another bad news is that slack doesn&rsquo;t have a feature to delete personal messages :/). You can see that fix below on line 5 or check the full code on Github <a href="https://github.com/OpenMined/PySyft/blob/e8f0f6df90b01d734c8d4ea6b84be08aec2edcbd/syft/workers/base.py#L450">here</a>
 </span></p>
 
-<pre><code class="language-python">def get_obj(self, obj_id: Union[str, int]) -&gt; object:
-        obj = super().get_obj(obj_id)
-        if hasattr(obj, &quot;child&quot;) and hasattr(obj.child, &quot;set_garbage_collect_data&quot;):
-            obj.child.set_garbage_collect_data(value=False)
-        if hasattr(obj, &quot;private&quot;) and obj.private:
-            return None
-        return obj
-</code></pre>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">get_obj</span>(self, obj_id: Union[str, int]) <span style="color:#f92672">-&gt;</span> object:
+        obj <span style="color:#f92672">=</span> super()<span style="color:#f92672">.</span>get_obj(obj_id)
+        <span style="color:#66d9ef">if</span> hasattr(obj, <span style="color:#e6db74">&#34;child&#34;</span>) <span style="color:#f92672">and</span> hasattr(obj<span style="color:#f92672">.</span>child, <span style="color:#e6db74">&#34;set_garbage_collect_data&#34;</span>):
+            obj<span style="color:#f92672">.</span>child<span style="color:#f92672">.</span>set_garbage_collect_data(value<span style="color:#f92672">=</span>False)
+        <span style="color:#66d9ef">if</span> hasattr(obj, <span style="color:#e6db74">&#34;private&#34;</span>) <span style="color:#f92672">and</span> obj<span style="color:#f92672">.</span>private:
+            <span style="color:#66d9ef">return</span> None
+        <span style="color:#66d9ef">return</span> obj</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 So I started using the last version and changed my strategy, knowing that cloning the tensor will not keep the private attribute, I started trying to clone it, however calling clone() on my constructed pointer was always aborting the connection between my worker and the remote one due to an error that I wasn&rsquo;t able to explain since it works just fine with a tensor I sent myself, if anyone is interested then this path might also be interesting.
@@ -137,23 +136,22 @@ So I started using the last version and changed my strategy, knowing that clonin
 Here I knew that I have to try harder and started exploring the code to find a way to delete that private attribute and found <a href="https://github.com/OpenMined/PySyft/blob/e8f0f6df90b01d734c8d4ea6b84be08aec2edcbd/syft/workers/base.py#L340">this interesting method</a> about executing commands on tensors and it wasn&rsquo;t making restrictions on private ones, you can see <a href="https://github.com/OpenMined/PySyft/blob/e8f0f6df90b01d734c8d4ea6b84be08aec2edcbd/syft/workers/base.py#L358">here</a> that it&rsquo;s just accessing the object using its id, however, to trigger this function on a remote worker we had to send a message of type MSGTYPE.CMD with the id of the remote object as well as the name and arguments of the method to call, this limited me to the set of methods a tensor has. Here are the functions I used to construct those messages and send them to the remote workers
 </span></p>
 
-<pre><code class="language-python">from syft import codes
-import binascii
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">from</span> syft <span style="color:#f92672">import</span> codes
+<span style="color:#f92672">import</span> binascii
 
-def command_msg(cname, oid, args: list, kwargs: dict) -&gt; tuple:
-    mtype = codes.MSGTYPE.CMD
-    msg = (mtype, ((cname, oid, args, kwargs), []))
-    return msg
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">command_msg</span>(cname, oid, args: list, kwargs: dict) <span style="color:#f92672">-&gt;</span> tuple:
+    mtype <span style="color:#f92672">=</span> codes<span style="color:#f92672">.</span>MSGTYPE<span style="color:#f92672">.</span>CMD
+    msg <span style="color:#f92672">=</span> (mtype, ((cname, oid, args, kwargs), []))
+    <span style="color:#66d9ef">return</span> msg
 
-def send_command(ws_client, message):
-    serialized_message = sy.serde.serialize(message)
-    ws_client.ws.send(str(binascii.hexlify(serialized_message)))
-    response = ws_client.ws.recv()
-    response = binascii.unhexlify(response[2:-1])
-    return sy.serde.deserialize(response)
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">send_command</span>(ws_client, message):
+    serialized_message <span style="color:#f92672">=</span> sy<span style="color:#f92672">.</span>serde<span style="color:#f92672">.</span>serialize(message)
+    ws_client<span style="color:#f92672">.</span>ws<span style="color:#f92672">.</span>send(str(binascii<span style="color:#f92672">.</span>hexlify(serialized_message)))
+    response <span style="color:#f92672">=</span> ws_client<span style="color:#f92672">.</span>ws<span style="color:#f92672">.</span>recv()
+    response <span style="color:#f92672">=</span> binascii<span style="color:#f92672">.</span>unhexlify(response[<span style="color:#ae81ff">2</span>:<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>])
+    <span style="color:#66d9ef">return</span> sy<span style="color:#f92672">.</span>serde<span style="color:#f92672">.</span>deserialize(response)
 
-msg = command_msg('__str__', 1, [], {})
-</code></pre>
+msg <span style="color:#f92672">=</span> command_msg(<span style="color:#e6db74">&#39;__str__&#39;</span>, <span style="color:#ae81ff">1</span>, [], {})</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 I wasn&rsquo;t sure about the response I get from the worker so I proceeded by experimentation, first I tried calling clone() and copy() but resulted in an error response, I directly thought about __str__() and was trying it hopelessly late at night, and I started seeing the waited private tensor.

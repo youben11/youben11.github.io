@@ -105,16 +105,15 @@ I played the qualification round of CSAW&rsquo;19 CTF with <a href="https://web.
 The challenge description doesn&rsquo;t tell too much except <code>who's fault??</code> and providing the server.py file and a remote server running it. Connecting to the remote server outputs this
 </span></p>
 
-<pre><code class="language-bash">[youben@ym fault_box]$ nc crypto.chal.csaw.io 1001
-====================================
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>youben@ym fault_box<span style="color:#f92672">]</span>$ nc crypto.chal.csaw.io 1001
+<span style="color:#f92672">====================================</span>
             fault box
-====================================
-1. print encrypted flag
-2. print encrypted fake flag
-3. print encrypted fake flag (TEST)
-4. encrypt
-====================================
-</code></pre>
+<span style="color:#f92672">====================================</span>
+<span style="color:#ae81ff">1</span>. print encrypted flag
+<span style="color:#ae81ff">2</span>. print encrypted fake flag
+<span style="color:#ae81ff">3</span>. print encrypted fake flag <span style="color:#f92672">(</span>TEST<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">4</span>. encrypt
+<span style="color:#f92672">====================================</span></code></pre></div>
 
 <h2 id="solution">Solution</h2>
 
@@ -122,283 +121,276 @@ The challenge description doesn&rsquo;t tell too much except <code>who's fault??
 The full code of the app can be found <a href="https://github.com/osirislab/CSAW-CTF-2019-Quals/blob/master/crypto/fault_box/server.py">here</a>, I&rsquo;m gonna try to explain the most important part of it so we learn how to exploit it. So the server is using RSA encryption, you can only request two operations from the first three before the key got changed, however, you can encrypt as many data as you want without the change being made, so I set the objective of getting the flag by using no more than two requests for the first three operations and encrypt as many data as we want to. The first interesting snippet of code is this:
 </span></p>
 
-<pre><code class="language-python">class incoming(socketserver.BaseRequestHandler):
-    def handle(self):
-        signal.alarm(300)
-        random.seed(time.time())
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">incoming</span>(socketserver<span style="color:#f92672">.</span>BaseRequestHandler):
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">handle</span>(self):
+        signal<span style="color:#f92672">.</span>alarm(<span style="color:#ae81ff">300</span>)
+        random<span style="color:#f92672">.</span>seed(time<span style="color:#f92672">.</span>time())
 
-        req = self.request
-        while True:
-          go(req)
-</code></pre>
+        req <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>request
+        <span style="color:#66d9ef">while</span> True:
+          go(req)</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 The PRNG used to later generate the RSA key is seeded with a timestamp during the handling of our request, so we can have a short range (actually around a second) to bruteforce it, the time() function returns a float with 7 decimal numbers (e.g 1568465156.8100668) so every second gives 10000000 possible values, not a big deal if we minimize the computation required to check if we got the right timestamp.
 </span></p>
 
-<pre><code class="language-python">def go(req):
-    r = RSA()
-    p, x = gen_prime()
-    q, y = gen_prime()
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">go</span>(req):
+    r <span style="color:#f92672">=</span> RSA()
+    p, x <span style="color:#f92672">=</span> gen_prime()
+    q, y <span style="color:#f92672">=</span> gen_prime()
 
-    r.generate(p, q)
-    fake_flag = 'fake_flag{%s}' % (('%X' % y).rjust(32, '0'))
-</code></pre>
+    r<span style="color:#f92672">.</span>generate(p, q)
+    fake_flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fake_flag{</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">}&#39;</span> <span style="color:#f92672">%</span> ((<span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> y)<span style="color:#f92672">.</span>rjust(<span style="color:#ae81ff">32</span>, <span style="color:#e6db74">&#39;0&#39;</span>))</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 We can request both the encrypted version of the flag and the fake one and note the timestamp range during our connection then bruteforce over that range generating keys (also the value of y which is used to build the fake flag) and encrypting the fake flag and comparing it with the one we got from the server, this should work theoretically, however, it&rsquo;s not cost efficient at all and would run slowly, so the trick is to find a way of making the check of our bruteforce cheaper in term of computation compared to the generation of an RSA key and the encryption of the fake flag. Since the value of y shouldn&rsquo;t be that big, we can start by bruteforcing the value of y by getting the fake encrypted flag from the server then encrypting our own over and over using the unlimited encryption the server provide until it matches, then we can start bruteforcing the timestamp offline. So the first step is to bruteforce y and get the encrypted flag and range of timestamps, all this is done by the python2 code below
 </span></p>
 
-<pre><code class="language-python">import time
-from pwn import *
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> time
+<span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
 
-HOST = (&quot;crypto.chal.csaw.io&quot;, 1001)
+HOST <span style="color:#f92672">=</span> (<span style="color:#e6db74">&#34;crypto.chal.csaw.io&#34;</span>, <span style="color:#ae81ff">1001</span>)
 
-def recv_heading(r):
-    for i in range(8):
-        r.recvline()
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">recv_heading</span>(r):
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">8</span>):
+        r<span style="color:#f92672">.</span>recvline()
 
-def bf_y(r, enc_fake_flag):
-    print(&quot;[+] Bruteforcing y&quot;)
-    y = 0
-    while True:
-        fake_flag = 'fake_flag{%s}' % (('%X' % y).rjust(32, '0'))
-        r.sendline('4')
-        # useless data
-        r.recv(1024)
-        r.sendline(fake_flag)
-        enc_y = r.recvline().strip()
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">bf_y</span>(r, enc_fake_flag):
+    <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Bruteforcing y&#34;</span>)
+    y <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+    <span style="color:#66d9ef">while</span> True:
+        fake_flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fake_flag{</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">}&#39;</span> <span style="color:#f92672">%</span> ((<span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> y)<span style="color:#f92672">.</span>rjust(<span style="color:#ae81ff">32</span>, <span style="color:#e6db74">&#39;0&#39;</span>))
+        r<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">&#39;4&#39;</span>)
+        <span style="color:#75715e"># useless data</span>
+        r<span style="color:#f92672">.</span>recv(<span style="color:#ae81ff">1024</span>)
+        r<span style="color:#f92672">.</span>sendline(fake_flag)
+        enc_y <span style="color:#f92672">=</span> r<span style="color:#f92672">.</span>recvline()<span style="color:#f92672">.</span>strip()
         recv_heading(r)
-        if enc_y == enc_fake_flag:
-            return y
-        else:
-            y = y + 1
-            print &quot;[+] y:%d&quot; % y
+        <span style="color:#66d9ef">if</span> enc_y <span style="color:#f92672">==</span> enc_fake_flag:
+            <span style="color:#66d9ef">return</span> y
+        <span style="color:#66d9ef">else</span>:
+            y <span style="color:#f92672">=</span> y <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+            <span style="color:#66d9ef">print</span> <span style="color:#e6db74">&#34;[+] y:</span><span style="color:#e6db74">%d</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">%</span> y
 
 
-def main():
-    time_start = time.time()
-    r = remote(*HOST)
-    time_end = time.time()
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    time_start <span style="color:#f92672">=</span> time<span style="color:#f92672">.</span>time()
+    r <span style="color:#f92672">=</span> remote(<span style="color:#f92672">*</span>HOST)
+    time_end <span style="color:#f92672">=</span> time<span style="color:#f92672">.</span>time()
     recv_heading(r)
-    # get encrypted fake flag
-    r.sendline('2')
-    enc_fake_flag = r.recvline().strip()
+    <span style="color:#75715e"># get encrypted fake flag</span>
+    r<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">&#39;2&#39;</span>)
+    enc_fake_flag <span style="color:#f92672">=</span> r<span style="color:#f92672">.</span>recvline()<span style="color:#f92672">.</span>strip()
     recv_heading(r)
-    # bruteforce y
-    y = bf_y(r, enc_fake_flag)
-    # get encrypted flag
-    r.sendline('1')
-    enc_flag = r.recvline().strip()
+    <span style="color:#75715e"># bruteforce y</span>
+    y <span style="color:#f92672">=</span> bf_y(r, enc_fake_flag)
+    <span style="color:#75715e"># get encrypted flag</span>
+    r<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">&#39;1&#39;</span>)
+    enc_flag <span style="color:#f92672">=</span> r<span style="color:#f92672">.</span>recvline()<span style="color:#f92672">.</span>strip()
     recv_heading(r)
-    print &quot;[+] Time interval: [%.7f, %.7f]&quot; % (time_start, time_end)
-    print &quot;[+] Encrypted flag:&quot;, enc_flag
-    print &quot;[+] Encrypted fake flag:&quot;, enc_fake_flag
-    print &quot;[+] Y:&quot;, y
-    r.close()
+    <span style="color:#66d9ef">print</span> <span style="color:#e6db74">&#34;[+] Time interval: [</span><span style="color:#e6db74">%.7f</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%.7f</span><span style="color:#e6db74">]&#34;</span> <span style="color:#f92672">%</span> (time_start, time_end)
+    <span style="color:#66d9ef">print</span> <span style="color:#e6db74">&#34;[+] Encrypted flag:&#34;</span>, enc_flag
+    <span style="color:#66d9ef">print</span> <span style="color:#e6db74">&#34;[+] Encrypted fake flag:&#34;</span>, enc_fake_flag
+    <span style="color:#66d9ef">print</span> <span style="color:#e6db74">&#34;[+] Y:&#34;</span>, y
+    r<span style="color:#f92672">.</span>close()
 
-if __name__ == '__main__':
-    main()
-
-</code></pre>
+<span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;__main__&#39;</span>:
+    main()</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 Part of what this script outputs is this
 </span></p>
 
-<pre><code class="language-bash">[+] Time interval: [1568465156.8807663, 1568465156.9883412]
-[+] Encrypted flag: 1F6F62EB628EB9DF50F78AB04473DD1ECC7E63F444BD8F29215C3B4F6F27EE652B803D3DCDD5659F22BC9C775EBDA272EB0F4787B7246258C2BB599762AFA833EA68886F96F1B49286DCF11FCCABC1906C90E56A3C83CB3184B9AE04D89AB9508CCBF3869AF43739D1E661C1DC76B48A64399DD76B559209726876FA71A42F895C555AF31E1509338EC566A2C86CA7C891495D53C2335BB10650D25700D147348BE88DEF957A15E4A6FB0C962BA73DA635D17A04FD07E346A404D84048CE101B23209D5BEDEF835732073ACF92F035B36FE33457DB9FC5B99B36A6038B28145F572DC8226D2B4984900E757A673EF35059DABA6FB9170C9E4E4257D7BEAED5D3
-[+] Encrypted fake flag: 2C2D6D3192EE857BA442EF224141FFD524AC904FAB1D35719047413F9E5EF797BBCCFB97AB56C1562A3CD8A0EF043394B60136D7CE8540EE7ECFF0536F491AD3277C999046A85B7DE6F12DBE1B6DD70CA7D9EB56BB752913BC4D1F969CDF970FE1C64FA3A100042EB8B6991B4735D8DCCCFBEFD2CCA8A103EA669E763999E87421A73CA0137627663472A31C8ADC53CDF107CEFB07ED37AC170E211A6BACD54F662B5D2E9AD4428E4B3A32D343BA52D592353A34018FAE788261543D98F73B8AD46E202E6A9969E789605ACEE67EBD85B4C4451D31EDE8142F95E306A0CE27DEFCE5B9BADD3F15D9A1C28E6345B7647CC9E477B25483FCE5CBA2CA45FE8626F7
-[+] Y: 167
-</code></pre>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> Time interval: <span style="color:#f92672">[</span><span style="color:#ae81ff">1568465156</span>.8807663, <span style="color:#ae81ff">1568465156</span>.9883412<span style="color:#f92672">]</span>
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> Encrypted flag: 1F6F62EB628EB9DF50F78AB04473DD1ECC7E63F444BD8F29215C3B4F6F27EE652B803D3DCDD5659F22BC9C775EBDA272EB0F4787B7246258C2BB599762AFA833EA68886F96F1B49286DCF11FCCABC1906C90E56A3C83CB3184B9AE04D89AB9508CCBF3869AF43739D1E661C1DC76B48A64399DD76B559209726876FA71A42F895C555AF31E1509338EC566A2C86CA7C891495D53C2335BB10650D25700D147348BE88DEF957A15E4A6FB0C962BA73DA635D17A04FD07E346A404D84048CE101B23209D5BEDEF835732073ACF92F035B36FE33457DB9FC5B99B36A6038B28145F572DC8226D2B4984900E757A673EF35059DABA6FB9170C9E4E4257D7BEAED5D3
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> Encrypted fake flag: 2C2D6D3192EE857BA442EF224141FFD524AC904FAB1D35719047413F9E5EF797BBCCFB97AB56C1562A3CD8A0EF043394B60136D7CE8540EE7ECFF0536F491AD3277C999046A85B7DE6F12DBE1B6DD70CA7D9EB56BB752913BC4D1F969CDF970FE1C64FA3A100042EB8B6991B4735D8DCCCFBEFD2CCA8A103EA669E763999E87421A73CA0137627663472A31C8ADC53CDF107CEFB07ED37AC170E211A6BACD54F662B5D2E9AD4428E4B3A32D343BA52D592353A34018FAE788261543D98F73B8AD46E202E6A9969E789605ACEE67EBD85B4C4451D31EDE8142F95E306A0CE27DEFCE5B9BADD3F15D9A1C28E6345B7647CC9E477B25483FCE5CBA2CA45FE8626F7
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> Y: <span style="color:#ae81ff">167</span></code></pre></div>
 
 <p><span style="color: #BEBEBE">
 The next step would be to use this values to start bruteforcing the timestamp, we check it by comparing the y value we got from the server and the one we got by randomizing using the timestamp as seed, there were several timestamps that pass this check, so we double checked with generating the RSA key using that timestamp and encrypting fake flag and comparing with the server value. The code to do that is provided below
 </span></p>
 
-<pre><code class="language-python">import socketserver
-import random
-import signal
-import time
-import gmpy2
-from Crypto.Util.number import inverse, bytes_to_long, long_to_bytes
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> socketserver
+<span style="color:#f92672">import</span> random
+<span style="color:#f92672">import</span> signal
+<span style="color:#f92672">import</span> time
+<span style="color:#f92672">import</span> gmpy2
+<span style="color:#f92672">from</span> Crypto.Util.number <span style="color:#f92672">import</span> inverse, bytes_to_long, long_to_bytes
 
-#FLAG = open('flag', 'r').read().strip()
-ENC_FAKE_FLAG = b'2C2D6D3192EE857BA442EF224141FFD524AC904FAB1D35719047413F9E5EF797BBCCFB97AB56C1562A3CD8A0EF043394B60136D7CE8540EE7ECFF0536F491AD3277C999046A85B7DE6F12DBE1B6DD70CA7D9EB56BB752913BC4D1F969CDF970FE1C64FA3A100042EB8B6991B4735D8DCCCFBEFD2CCA8A103EA669E763999E87421A73CA0137627663472A31C8ADC53CDF107CEFB07ED37AC170E211A6BACD54F662B5D2E9AD4428E4B3A32D343BA52D592353A34018FAE788261543D98F73B8AD46E202E6A9969E789605ACEE67EBD85B4C4451D31EDE8142F95E306A0CE27DEFCE5B9BADD3F15D9A1C28E6345B7647CC9E477B25483FCE5CBA2CA45FE8626F7'
-Y = 167
+<span style="color:#75715e">#FLAG = open(&#39;flag&#39;, &#39;r&#39;).read().strip()</span>
+ENC_FAKE_FLAG <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;2C2D6D3192EE857BA442EF224141FFD524AC904FAB1D35719047413F9E5EF797BBCCFB97AB56C1562A3CD8A0EF043394B60136D7CE8540EE7ECFF0536F491AD3277C999046A85B7DE6F12DBE1B6DD70CA7D9EB56BB752913BC4D1F969CDF970FE1C64FA3A100042EB8B6991B4735D8DCCCFBEFD2CCA8A103EA669E763999E87421A73CA0137627663472A31C8ADC53CDF107CEFB07ED37AC170E211A6BACD54F662B5D2E9AD4428E4B3A32D343BA52D592353A34018FAE788261543D98F73B8AD46E202E6A9969E789605ACEE67EBD85B4C4451D31EDE8142F95E306A0CE27DEFCE5B9BADD3F15D9A1C28E6345B7647CC9E477B25483FCE5CBA2CA45FE8626F7&#39;</span>
+Y <span style="color:#f92672">=</span> <span style="color:#ae81ff">167</span>
 
-def s2n(s):
-    return bytes_to_long(bytearray(s, 'latin-1'))
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">s2n</span>(s):
+    <span style="color:#66d9ef">return</span> bytes_to_long(bytearray(s, <span style="color:#e6db74">&#39;latin-1&#39;</span>))
 
-def n2s(n):
-    return long_to_bytes(n).decode('latin-1')
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">n2s</span>(n):
+    <span style="color:#66d9ef">return</span> long_to_bytes(n)<span style="color:#f92672">.</span>decode(<span style="color:#e6db74">&#39;latin-1&#39;</span>)
 
-def gen_prime(y=0):
-    base = random.getrandbits(1024)
-    off = y
-    while True:
-        if gmpy2.is_prime(base + off):
-            break
-        off += 1
-    p = base + off
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">gen_prime</span>(y<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>):
+    base <span style="color:#f92672">=</span> random<span style="color:#f92672">.</span>getrandbits(<span style="color:#ae81ff">1024</span>)
+    off <span style="color:#f92672">=</span> y
+    <span style="color:#66d9ef">while</span> True:
+        <span style="color:#66d9ef">if</span> gmpy2<span style="color:#f92672">.</span>is_prime(base <span style="color:#f92672">+</span> off):
+            <span style="color:#66d9ef">break</span>
+        off <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+    p <span style="color:#f92672">=</span> base <span style="color:#f92672">+</span> off
 
-    return p, off
+    <span style="color:#66d9ef">return</span> p, off
 
-class RSA(object):
-    def __init__(self):
-        pass
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">RSA</span>(object):
+    <span style="color:#66d9ef">def</span> __init__(self):
+        <span style="color:#66d9ef">pass</span>
 
-    def generate(self, p, q, e=0x10001):
-        self.p = p
-        self.q = q
-        self.N = p * q
-        self.e = e
-        phi = (p-1) * (q-1)
-        self.d = inverse(e, phi)
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">generate</span>(self, p, q, e<span style="color:#f92672">=</span><span style="color:#ae81ff">0x10001</span>):
+        self<span style="color:#f92672">.</span>p <span style="color:#f92672">=</span> p
+        self<span style="color:#f92672">.</span>q <span style="color:#f92672">=</span> q
+        self<span style="color:#f92672">.</span>N <span style="color:#f92672">=</span> p <span style="color:#f92672">*</span> q
+        self<span style="color:#f92672">.</span>e <span style="color:#f92672">=</span> e
+        phi <span style="color:#f92672">=</span> (p<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) <span style="color:#f92672">*</span> (q<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+        self<span style="color:#f92672">.</span>d <span style="color:#f92672">=</span> inverse(e, phi)
 
-    def encrypt(self, p):
-        return pow(p, self.e, self.N)
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">encrypt</span>(self, p):
+        <span style="color:#66d9ef">return</span> pow(p, self<span style="color:#f92672">.</span>e, self<span style="color:#f92672">.</span>N)
 
-    def decrypt(self, c):
-        return pow(c, self.d, self.N)
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decrypt</span>(self, c):
+        <span style="color:#66d9ef">return</span> pow(c, self<span style="color:#f92672">.</span>d, self<span style="color:#f92672">.</span>N)
 
-    # ===== FUNCTIONS FOR PERSONAL TESTS, DON'T USE THEM =====
-    def TEST_CRT_encrypt(self, p, fun=0):
-        ep = inverse(self.d, self.p-1)
-        eq = inverse(self.d, self.q-1)
-        qinv = inverse(self.q, self.p)
-        c1 = pow(p, ep, self.p)
-        c2 = pow(p, eq, self.q) ^ fun
-        h = (qinv * (c1 - c2)) % self.p
-        c = c2 + h*self.q
-        return c
+    <span style="color:#75715e"># ===== FUNCTIONS FOR PERSONAL TESTS, DON&#39;T USE THEM =====</span>
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">TEST_CRT_encrypt</span>(self, p, fun<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>):
+        ep <span style="color:#f92672">=</span> inverse(self<span style="color:#f92672">.</span>d, self<span style="color:#f92672">.</span>p<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+        eq <span style="color:#f92672">=</span> inverse(self<span style="color:#f92672">.</span>d, self<span style="color:#f92672">.</span>q<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+        qinv <span style="color:#f92672">=</span> inverse(self<span style="color:#f92672">.</span>q, self<span style="color:#f92672">.</span>p)
+        c1 <span style="color:#f92672">=</span> pow(p, ep, self<span style="color:#f92672">.</span>p)
+        c2 <span style="color:#f92672">=</span> pow(p, eq, self<span style="color:#f92672">.</span>q) <span style="color:#f92672">^</span> fun
+        h <span style="color:#f92672">=</span> (qinv <span style="color:#f92672">*</span> (c1 <span style="color:#f92672">-</span> c2)) <span style="color:#f92672">%</span> self<span style="color:#f92672">.</span>p
+        c <span style="color:#f92672">=</span> c2 <span style="color:#f92672">+</span> h<span style="color:#f92672">*</span>self<span style="color:#f92672">.</span>q
+        <span style="color:#66d9ef">return</span> c
 
-    def TEST_CRT_decrypt(self, c, fun=0):
-        dp = inverse(self.e, self.p-1)
-        dq = inverse(self.e, self.q-1)
-        qinv = inverse(self.q, self.p)
-        m1 = pow(c, dp, self.p)
-        m2 = pow(c, dq, self.q) ^ fun
-        h = (qinv * (m1 - m2)) % self.p
-        m = m2 + h*self.q
-        return m
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">TEST_CRT_decrypt</span>(self, c, fun<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>):
+        dp <span style="color:#f92672">=</span> inverse(self<span style="color:#f92672">.</span>e, self<span style="color:#f92672">.</span>p<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+        dq <span style="color:#f92672">=</span> inverse(self<span style="color:#f92672">.</span>e, self<span style="color:#f92672">.</span>q<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+        qinv <span style="color:#f92672">=</span> inverse(self<span style="color:#f92672">.</span>q, self<span style="color:#f92672">.</span>p)
+        m1 <span style="color:#f92672">=</span> pow(c, dp, self<span style="color:#f92672">.</span>p)
+        m2 <span style="color:#f92672">=</span> pow(c, dq, self<span style="color:#f92672">.</span>q) <span style="color:#f92672">^</span> fun
+        h <span style="color:#f92672">=</span> (qinv <span style="color:#f92672">*</span> (m1 <span style="color:#f92672">-</span> m2)) <span style="color:#f92672">%</span> self<span style="color:#f92672">.</span>p
+        m <span style="color:#f92672">=</span> m2 <span style="color:#f92672">+</span> h<span style="color:#f92672">*</span>self<span style="color:#f92672">.</span>q
+        <span style="color:#66d9ef">return</span> m
 
-def go(req):
-    r = RSA()
-    p, x = gen_prime()
-    q, y = gen_prime()
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">go</span>(req):
+    r <span style="color:#f92672">=</span> RSA()
+    p, x <span style="color:#f92672">=</span> gen_prime()
+    q, y <span style="color:#f92672">=</span> gen_prime()
 
-    r.generate(p, q)
-    fake_flag = 'fake_flag{%s}' % (('%X' % y).rjust(32, '0'))
+    r<span style="color:#f92672">.</span>generate(p, q)
+    fake_flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fake_flag{</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">}&#39;</span> <span style="color:#f92672">%</span> ((<span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> y)<span style="color:#f92672">.</span>rjust(<span style="color:#ae81ff">32</span>, <span style="color:#e6db74">&#39;0&#39;</span>))
 
-    def enc_flag():
-        req.sendall(b'%X\n' % r.encrypt(s2n(FLAG)))
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">enc_flag</span>():
+        req<span style="color:#f92672">.</span>sendall(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> r<span style="color:#f92672">.</span>encrypt(s2n(FLAG)))
 
-    def enc_fake_flag():
-        req.sendall(b'%X\n' % r.encrypt(s2n(fake_flag)))
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">enc_fake_flag</span>():
+        req<span style="color:#f92672">.</span>sendall(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> r<span style="color:#f92672">.</span>encrypt(s2n(fake_flag)))
 
-    def enc_fake_flag_TEST():
-        req.sendall(b'%X\n' % r.TEST_CRT_encrypt(s2n(fake_flag), x))
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">enc_fake_flag_TEST</span>():
+        req<span style="color:#f92672">.</span>sendall(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> r<span style="color:#f92672">.</span>TEST_CRT_encrypt(s2n(fake_flag), x))
 
-    def enc_msg():
-        req.sendall(b'input the data:')
-        p = str(req.recv(4096).strip(), 'utf-8')
-        req.sendall(b'%X\n' % r.encrypt(s2n(p)))
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">enc_msg</span>():
+        req<span style="color:#f92672">.</span>sendall(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;input the data:&#39;</span>)
+        p <span style="color:#f92672">=</span> str(req<span style="color:#f92672">.</span>recv(<span style="color:#ae81ff">4096</span>)<span style="color:#f92672">.</span>strip(), <span style="color:#e6db74">&#39;utf-8&#39;</span>)
+        req<span style="color:#f92672">.</span>sendall(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> r<span style="color:#f92672">.</span>encrypt(s2n(p)))
 
-    menu = {
-        '1': enc_flag,
-        '2': enc_fake_flag,
-        '3': enc_fake_flag_TEST,
-        '4': enc_msg,
+    menu <span style="color:#f92672">=</span> {
+        <span style="color:#e6db74">&#39;1&#39;</span>: enc_flag,
+        <span style="color:#e6db74">&#39;2&#39;</span>: enc_fake_flag,
+        <span style="color:#e6db74">&#39;3&#39;</span>: enc_fake_flag_TEST,
+        <span style="color:#e6db74">&#39;4&#39;</span>: enc_msg,
     }
 
-    cnt = 2
-    while cnt &gt; 0:
-        req.sendall(bytes(
-            '====================================\n'
-            '            fault box\n'
-            '====================================\n'
-            '1. print encrypted flag\n'
-            '2. print encrypted fake flag\n'
-            '3. print encrypted fake flag (TEST)\n'
-            '4. encrypt\n'
-            '====================================\n', 'utf-8'))
+    cnt <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>
+    <span style="color:#66d9ef">while</span> cnt <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>:
+        req<span style="color:#f92672">.</span>sendall(bytes(
+            <span style="color:#e6db74">&#39;====================================</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;            fault box</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;====================================</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;1. print encrypted flag</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;2. print encrypted fake flag</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;3. print encrypted fake flag (TEST)</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;4. encrypt</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>
+            <span style="color:#e6db74">&#39;====================================</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>, <span style="color:#e6db74">&#39;utf-8&#39;</span>))
 
-        choice = str(req.recv(2).strip(), 'utf-8')
-        if choice not in menu:
-            exit(1)
+        choice <span style="color:#f92672">=</span> str(req<span style="color:#f92672">.</span>recv(<span style="color:#ae81ff">2</span>)<span style="color:#f92672">.</span>strip(), <span style="color:#e6db74">&#39;utf-8&#39;</span>)
+        <span style="color:#66d9ef">if</span> choice <span style="color:#f92672">not</span> <span style="color:#f92672">in</span> menu:
+            exit(<span style="color:#ae81ff">1</span>)
 
         menu[choice]()
 
-        if choice == '4':
-            continue
+        <span style="color:#66d9ef">if</span> choice <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;4&#39;</span>:
+            <span style="color:#66d9ef">continue</span>
 
-        cnt -= 1
+        cnt <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>
 
-class incoming(socketserver.BaseRequestHandler):
-    def handle(self):
-        signal.alarm(300)
-        t = time.time()
-        print('time %.7f' % t)
-        random.seed(t)
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">incoming</span>(socketserver<span style="color:#f92672">.</span>BaseRequestHandler):
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">handle</span>(self):
+        signal<span style="color:#f92672">.</span>alarm(<span style="color:#ae81ff">300</span>)
+        t <span style="color:#f92672">=</span> time<span style="color:#f92672">.</span>time()
+        <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#39;time </span><span style="color:#e6db74">%.7f</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> t)
+        random<span style="color:#f92672">.</span>seed(t)
 
-        req = self.request
-        while True:
+        req <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>request
+        <span style="color:#66d9ef">while</span> True:
             go(req)
 
-class ReusableTCPServer(socketserver.ForkingMixIn, socketserver.TCPServer):
-    pass
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ReusableTCPServer</span>(socketserver<span style="color:#f92672">.</span>ForkingMixIn, socketserver<span style="color:#f92672">.</span>TCPServer):
+    <span style="color:#66d9ef">pass</span>
 
-def run():
-    socketserver.TCPServer.allow_reuse_address = True
-    server = ReusableTCPServer((&quot;0.0.0.0&quot;, 23333), incoming)
-    server.serve_forever()
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">run</span>():
+    socketserver<span style="color:#f92672">.</span>TCPServer<span style="color:#f92672">.</span>allow_reuse_address <span style="color:#f92672">=</span> True
+    server <span style="color:#f92672">=</span> ReusableTCPServer((<span style="color:#e6db74">&#34;0.0.0.0&#34;</span>, <span style="color:#ae81ff">23333</span>), incoming)
+    server<span style="color:#f92672">.</span>serve_forever()
 
-def decrypt_flag(r):
-    FLAG = &quot;1F6F62EB628EB9DF50F78AB04473DD1ECC7E63F444BD8F29215C3B4F6F27EE652B803D3DCDD5659F22BC9C775EBDA272EB0F4787B7246258C2BB599762AFA833EA68886F96F1B49286DCF11FCCABC1906C90E56A3C83CB3184B9AE04D89AB9508CCBF3869AF43739D1E661C1DC76B48A64399DD76B559209726876FA71A42F895C555AF31E1509338EC566A2C86CA7C891495D53C2335BB10650D25700D147348BE88DEF957A15E4A6FB0C962BA73DA635D17A04FD07E346A404D84048CE101B23209D5BEDEF835732073ACF92F035B36FE33457DB9FC5B99B36A6038B28145F572DC8226D2B4984900E757A673EF35059DABA6FB9170C9E4E4257D7BEAED5D3&quot;
-    flag = n2s(r.decrypt(int(FLAG,16)))
-    if 'flag' in flag:
-        print(&quot;[+] Found:&quot;, flag)
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decrypt_flag</span>(r):
+    FLAG <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;1F6F62EB628EB9DF50F78AB04473DD1ECC7E63F444BD8F29215C3B4F6F27EE652B803D3DCDD5659F22BC9C775EBDA272EB0F4787B7246258C2BB599762AFA833EA68886F96F1B49286DCF11FCCABC1906C90E56A3C83CB3184B9AE04D89AB9508CCBF3869AF43739D1E661C1DC76B48A64399DD76B559209726876FA71A42F895C555AF31E1509338EC566A2C86CA7C891495D53C2335BB10650D25700D147348BE88DEF957A15E4A6FB0C962BA73DA635D17A04FD07E346A404D84048CE101B23209D5BEDEF835732073ACF92F035B36FE33457DB9FC5B99B36A6038B28145F572DC8226D2B4984900E757A673EF35059DABA6FB9170C9E4E4257D7BEAED5D3&#34;</span>
+    flag <span style="color:#f92672">=</span> n2s(r<span style="color:#f92672">.</span>decrypt(int(FLAG,<span style="color:#ae81ff">16</span>)))
+    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#39;flag&#39;</span> <span style="color:#f92672">in</span> flag:
+        <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Found:&#34;</span>, flag)
 
-def crack(enc_fake_flag):
-    sec = 1568465156
-    ms_start = 8807663
-    ms_end = 9883412
-    r = RSA()
-    for i in range(ms_start, ms_end):
-        # construct the timestamp from the second and milliseconds
-        t = round(float(sec) + i * 1e-7, 7)
-        print(&quot;\r[+] %.7f&quot; % t, end='')
-        random.seed(t)
-        p = random.getrandbits(1024)
-        q = random.getrandbits(1024)
-        q += Y
-        # if q+y is prime then y could have been generated with t as seed
-        if gmpy2.is_prime(q):
-            random.seed(t)
-            p, x = gen_prime()
-            q, y = gen_prime(y=Y)
-            r.generate(p, q)
-            fake_flag = 'fake_flag{%s}' % (('%X' % y).rjust(32, '0'))
-            enc_y = b'%X\n' % r.encrypt(s2n(fake_flag))
-            # make sure that the key generated by the seed is the correct one
-            if enc_y.strip() == enc_fake_flag:
-                print(&quot;[*] Found at %.7f!&quot; % t)
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">crack</span>(enc_fake_flag):
+    sec <span style="color:#f92672">=</span> <span style="color:#ae81ff">1568465156</span>
+    ms_start <span style="color:#f92672">=</span> <span style="color:#ae81ff">8807663</span>
+    ms_end <span style="color:#f92672">=</span> <span style="color:#ae81ff">9883412</span>
+    r <span style="color:#f92672">=</span> RSA()
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(ms_start, ms_end):
+        <span style="color:#75715e"># construct the timestamp from the second and milliseconds</span>
+        t <span style="color:#f92672">=</span> round(float(sec) <span style="color:#f92672">+</span> i <span style="color:#f92672">*</span> <span style="color:#ae81ff">1e-7</span>, <span style="color:#ae81ff">7</span>)
+        <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\r</span><span style="color:#e6db74">[+] </span><span style="color:#e6db74">%.7f</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">%</span> t, end<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;&#39;</span>)
+        random<span style="color:#f92672">.</span>seed(t)
+        p <span style="color:#f92672">=</span> random<span style="color:#f92672">.</span>getrandbits(<span style="color:#ae81ff">1024</span>)
+        q <span style="color:#f92672">=</span> random<span style="color:#f92672">.</span>getrandbits(<span style="color:#ae81ff">1024</span>)
+        q <span style="color:#f92672">+=</span> Y
+        <span style="color:#75715e"># if q+y is prime then y could have been generated with t as seed</span>
+        <span style="color:#66d9ef">if</span> gmpy2<span style="color:#f92672">.</span>is_prime(q):
+            random<span style="color:#f92672">.</span>seed(t)
+            p, x <span style="color:#f92672">=</span> gen_prime()
+            q, y <span style="color:#f92672">=</span> gen_prime(y<span style="color:#f92672">=</span>Y)
+            r<span style="color:#f92672">.</span>generate(p, q)
+            fake_flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;fake_flag{</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">}&#39;</span> <span style="color:#f92672">%</span> ((<span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> y)<span style="color:#f92672">.</span>rjust(<span style="color:#ae81ff">32</span>, <span style="color:#e6db74">&#39;0&#39;</span>))
+            enc_y <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#e6db74">%X</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">%</span> r<span style="color:#f92672">.</span>encrypt(s2n(fake_flag))
+            <span style="color:#75715e"># make sure that the key generated by the seed is the correct one</span>
+            <span style="color:#66d9ef">if</span> enc_y<span style="color:#f92672">.</span>strip() <span style="color:#f92672">==</span> enc_fake_flag:
+                <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[*] Found at </span><span style="color:#e6db74">%.7f</span><span style="color:#e6db74">!&#34;</span> <span style="color:#f92672">%</span> t)
                 decrypt_flag(r)
 
-print(&quot;[+] Started cracking&quot;)
-crack(ENC_FAKE_FLAG)
-</code></pre>
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Started cracking&#34;</span>)
+crack(ENC_FAKE_FLAG)</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 It was able to find the flag in less than 5 minutes
 </span></p>
 
-<pre><code class="language-bash">[youben@ym fault_box]$ python bf.py
-[+] Started cracking
-[+] 1568465156.9699578[*] Found at 1568465156.9699578!
-[+] Found: flag{ooo000_f4ul7y_4nd_pr3d1c74bl3_000ooo}
-</code></pre>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>youben@ym fault_box<span style="color:#f92672">]</span>$ python bf.py
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> Started cracking
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> <span style="color:#ae81ff">1568465156</span>.9699578<span style="color:#f92672">[</span>*<span style="color:#f92672">]</span> Found at <span style="color:#ae81ff">1568465156</span>.9699578!
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> Found: flag<span style="color:#f92672">{</span>ooo000_f4ul7y_4nd_pr3d1c74bl3_000ooo<span style="color:#f92672">}</span></code></pre></div>
 
 <p><span style="color: #BEBEBE">
 I hope you enjoyed the writeup cause I really enjoyed this challenge, thanks to NYU for organizing such CTF and making awesome challenges.

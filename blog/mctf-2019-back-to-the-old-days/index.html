@@ -116,55 +116,53 @@ nc 52.59.5.86 1111
 I first tried to use the public service
 <span></p>
 
-<pre><code class="language-bash">[youben@ym ~]$ ncat 52.59.5.86 1111
-[1] register
-[2] login
-1
-[+] name:
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>youben@ym ~<span style="color:#f92672">]</span>$ ncat <span style="color:#ae81ff">52</span>.59.5.86 <span style="color:#ae81ff">1111</span>
+<span style="color:#f92672">[</span><span style="color:#ae81ff">1</span><span style="color:#f92672">]</span> register
+<span style="color:#f92672">[</span><span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> login
+<span style="color:#ae81ff">1</span>
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> name:
 youben
-[+] password:
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> password:
 password
-[+] this is your hex-encoded cookie: 6625205b724457776f2e753f7c3463542a3f584254547d6a77493c0b09714c3a2761476358606a6e45653a5d
-[1] register
-[2] login
-2
-[+] cookie(in hex):
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> this is your hex-encoded cookie: 6625205b724457776f2e753f7c3463542a3f584254547d6a77493c0b09714c3a2761476358606a6e45653a5d
+<span style="color:#f92672">[</span><span style="color:#ae81ff">1</span><span style="color:#f92672">]</span> register
+<span style="color:#f92672">[</span><span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> login
+<span style="color:#ae81ff">2</span>
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> cookie<span style="color:#f92672">(</span>in hex<span style="color:#f92672">)</span>:
 6625205b724457776f2e753f7c3463542a3f584254547d6a77493c0b09714c3a2761476358606a6e45653a5d
-[-] access is for admins only
-[1] register
-[2] login
-</code></pre>
+<span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> access is <span style="color:#66d9ef">for</span> admins only
+<span style="color:#f92672">[</span><span style="color:#ae81ff">1</span><span style="color:#f92672">]</span> register
+<span style="color:#f92672">[</span><span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> login</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 It seems like our information are stored in that cookie and are checked when we try to login to see if we have admin rights. So the goal is to construct a valid admin cookie. Let&rsquo;s check the provided code
 </span></p>
 
-<pre><code class="language-python">#all what u need is here
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e">#all what u need is here</span>
 
-from string import printable as alpha
+<span style="color:#f92672">from</span> string <span style="color:#f92672">import</span> printable <span style="color:#66d9ef">as</span> alpha
 
-def encrypt(msg,key,iv):
-    if len(msg) % 11 != 0:
-        msg += alpha[len(msg) % 11] * (11 - len(msg) % 11)
-    l = [msg[i:i+11] for i in range(0,len(msg),11)]
-    ct = []
-    for i in l:
-        tmp = viginereEncrypt(i,iv)
-        tmp = railFenceEncrypt(tmp,key)
-        ct.append(tmp)
-        iv = tmp
-    return ''.join(ct)
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">encrypt</span>(msg,key,iv):
+    <span style="color:#66d9ef">if</span> len(msg) <span style="color:#f92672">%</span> <span style="color:#ae81ff">11</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>:
+        msg <span style="color:#f92672">+=</span> alpha[len(msg) <span style="color:#f92672">%</span> <span style="color:#ae81ff">11</span>] <span style="color:#f92672">*</span> (<span style="color:#ae81ff">11</span> <span style="color:#f92672">-</span> len(msg) <span style="color:#f92672">%</span> <span style="color:#ae81ff">11</span>)
+    l <span style="color:#f92672">=</span> [msg[i:i<span style="color:#f92672">+</span><span style="color:#ae81ff">11</span>] <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">0</span>,len(msg),<span style="color:#ae81ff">11</span>)]
+    ct <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> l:
+        tmp <span style="color:#f92672">=</span> viginereEncrypt(i,iv)
+        tmp <span style="color:#f92672">=</span> railFenceEncrypt(tmp,key)
+        ct<span style="color:#f92672">.</span>append(tmp)
+        iv <span style="color:#f92672">=</span> tmp
+    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#39;&#39;</span><span style="color:#f92672">.</span>join(ct)
 
-def decrypt(msg,key,iv):
-    l = [msg[i:i+11] for i in range(0,len(msg),11)]
-    pt = []
-    for i in l:
-        tmp = railFenceDecrypt(i,key)
-        tmp = viginereDecrypt(tmp,iv)
-        pt.append(tmp)
-        iv = i
-    return ''.join(pt)
-</code></pre>
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decrypt</span>(msg,key,iv):
+    l <span style="color:#f92672">=</span> [msg[i:i<span style="color:#f92672">+</span><span style="color:#ae81ff">11</span>] <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">0</span>,len(msg),<span style="color:#ae81ff">11</span>)]
+    pt <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> l:
+        tmp <span style="color:#f92672">=</span> railFenceDecrypt(i,key)
+        tmp <span style="color:#f92672">=</span> viginereDecrypt(tmp,iv)
+        pt<span style="color:#f92672">.</span>append(tmp)
+        iv <span style="color:#f92672">=</span> i
+    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#39;&#39;</span><span style="color:#f92672">.</span>join(pt)</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 The encryption can be illustrated in the figure below
@@ -186,157 +184,155 @@ Trying different inputs, I discovered that a name and password of length 6 + 11k
 Decrypting the cookie gave me &lsquo;](yv$zHX?B)&amp;password=&amp;admin=false&amp;1111111111&rsquo;, seems like we only need to replace that &lsquo;false&rsquo; with a &lsquo;true&rsquo; and reconstruct a valid cookie. You can check the complete code for doing that below
 </span></p>
 
-<pre><code class="language-python">from string import printable as alpha
-from binascii import unhexlify, hexlify
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">from</span> string <span style="color:#f92672">import</span> printable <span style="color:#66d9ef">as</span> alpha
+<span style="color:#f92672">from</span> binascii <span style="color:#f92672">import</span> unhexlify, hexlify
 
 
-def encryptRailFence(text, key):
-    rail = [['\n' for i in range(len(text))]
-                  for j in range(key)]
-    dir_down = False
-    row, col = 0, 0
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">encryptRailFence</span>(text, key):
+    rail <span style="color:#f92672">=</span> [[<span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(text))]
+                  <span style="color:#66d9ef">for</span> j <span style="color:#f92672">in</span> range(key)]
+    dir_down <span style="color:#f92672">=</span> False
+    row, col <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>
 
-    for i in range(len(text)):
-        if (row == 0) or (row == key - 1):
-            dir_down = not dir_down
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(text)):
+        <span style="color:#66d9ef">if</span> (row <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">or</span> (row <span style="color:#f92672">==</span> key <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>):
+            dir_down <span style="color:#f92672">=</span> <span style="color:#f92672">not</span> dir_down
 
-        rail[row][col] = text[i]
-        col += 1
-        if dir_down:
-            row += 1
-        else:
-            row -= 1
-    result = []
-    for i in range(key):
-        for j in range(len(text)):
-            if rail[i][j] != '\n':
-                result.append(rail[i][j])
-    return(&quot;&quot; . join(result))
-
-
-def decryptRailFence(cipher, key):
-    rail = [['\n' for i in range(len(cipher))]
-                  for j in range(key)]
-    dir_down = None
-    row, col = 0, 0
-
-    for i in range(len(cipher)):
-        if row == 0:
-            dir_down = True
-        if row == key - 1:
-            dir_down = False
-
-        rail[row][col] = '*'
-        col += 1
-
-        if dir_down:
-            row += 1
-        else:
-            row -= 1
-    index = 0
-    for i in range(key):
-        for j in range(len(cipher)):
-            if ((rail[i][j] == '*') and
-               (index &lt; len(cipher))):
-                rail[i][j] = cipher[index]
-                index += 1
-    result = []
-    row, col = 0, 0
-    for i in range(len(cipher)):
-        if row == 0:
-            dir_down = True
-        if row == key-1:
-            dir_down = False
-        if (rail[row][col] != '*'):
-            result.append(rail[row][col])
-            col += 1
-        if dir_down:
-            row += 1
-        else:
-            row -= 1
-    return(&quot;&quot;.join(result))
+        rail[row][col] <span style="color:#f92672">=</span> text[i]
+        col <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        <span style="color:#66d9ef">if</span> dir_down:
+            row <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        <span style="color:#66d9ef">else</span>:
+            row <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>
+    result <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(key):
+        <span style="color:#66d9ef">for</span> j <span style="color:#f92672">in</span> range(len(text)):
+            <span style="color:#66d9ef">if</span> rail[i][j] <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>:
+                result<span style="color:#f92672">.</span>append(rail[i][j])
+    <span style="color:#66d9ef">return</span>(<span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">.</span> join(result))
 
 
-def decryptVig(ciphertext, key):
-    key_length = len(key)
-    key_as_int = [alpha.find(k) for k in key]
-    ciphertext_int = [alpha.find(c) for c in ciphertext]
-    plaintext = ''
-    for i in range(len(ciphertext_int)):
-        p = (ciphertext_int[i] - key_as_int[i % key_length]) % len(alpha)
-        plaintext += alpha[p]
-    return plaintext
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decryptRailFence</span>(cipher, key):
+    rail <span style="color:#f92672">=</span> [[<span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(cipher))]
+                  <span style="color:#66d9ef">for</span> j <span style="color:#f92672">in</span> range(key)]
+    dir_down <span style="color:#f92672">=</span> None
+    row, col <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>
+
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(cipher)):
+        <span style="color:#66d9ef">if</span> row <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>:
+            dir_down <span style="color:#f92672">=</span> True
+        <span style="color:#66d9ef">if</span> row <span style="color:#f92672">==</span> key <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>:
+            dir_down <span style="color:#f92672">=</span> False
+
+        rail[row][col] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;*&#39;</span>
+        col <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+
+        <span style="color:#66d9ef">if</span> dir_down:
+            row <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        <span style="color:#66d9ef">else</span>:
+            row <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>
+    index <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(key):
+        <span style="color:#66d9ef">for</span> j <span style="color:#f92672">in</span> range(len(cipher)):
+            <span style="color:#66d9ef">if</span> ((rail[i][j] <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;*&#39;</span>) <span style="color:#f92672">and</span>
+               (index <span style="color:#f92672">&lt;</span> len(cipher))):
+                rail[i][j] <span style="color:#f92672">=</span> cipher[index]
+                index <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+    result <span style="color:#f92672">=</span> []
+    row, col <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(cipher)):
+        <span style="color:#66d9ef">if</span> row <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>:
+            dir_down <span style="color:#f92672">=</span> True
+        <span style="color:#66d9ef">if</span> row <span style="color:#f92672">==</span> key<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>:
+            dir_down <span style="color:#f92672">=</span> False
+        <span style="color:#66d9ef">if</span> (rail[row][col] <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;*&#39;</span>):
+            result<span style="color:#f92672">.</span>append(rail[row][col])
+            col <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        <span style="color:#66d9ef">if</span> dir_down:
+            row <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+        <span style="color:#66d9ef">else</span>:
+            row <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>
+    <span style="color:#66d9ef">return</span>(<span style="color:#e6db74">&#34;&#34;</span><span style="color:#f92672">.</span>join(result))
 
 
-def encryptVig(plaintext, key):
-    key_length = len(key)
-    key_as_int = [alpha.find(k) for k in key]
-    plaintext_int = [alpha.find(p) for p in plaintext]
-    ciphertext = ''
-    for i in range(len(plaintext_int)):
-        c = (plaintext_int[i] + key_as_int[i % key_length]) % len(alpha)
-        ciphertext += alpha[c]
-    return ciphertext
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decryptVig</span>(ciphertext, key):
+    key_length <span style="color:#f92672">=</span> len(key)
+    key_as_int <span style="color:#f92672">=</span> [alpha<span style="color:#f92672">.</span>find(k) <span style="color:#66d9ef">for</span> k <span style="color:#f92672">in</span> key]
+    ciphertext_int <span style="color:#f92672">=</span> [alpha<span style="color:#f92672">.</span>find(c) <span style="color:#66d9ef">for</span> c <span style="color:#f92672">in</span> ciphertext]
+    plaintext <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(ciphertext_int)):
+        p <span style="color:#f92672">=</span> (ciphertext_int[i] <span style="color:#f92672">-</span> key_as_int[i <span style="color:#f92672">%</span> key_length]) <span style="color:#f92672">%</span> len(alpha)
+        plaintext <span style="color:#f92672">+=</span> alpha[p]
+    <span style="color:#66d9ef">return</span> plaintext
 
 
-def decrypt(msg,key,iv):
-    l = [msg[i:i+11] for i in range(0,len(msg),11)]
-    pt = []
-    for i in l:
-        tmp = decryptRailFence(i,key)
-        tmp = decryptVig(tmp,iv)
-        pt.append(tmp)
-        iv = i
-    return ''.join(pt)
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">encryptVig</span>(plaintext, key):
+    key_length <span style="color:#f92672">=</span> len(key)
+    key_as_int <span style="color:#f92672">=</span> [alpha<span style="color:#f92672">.</span>find(k) <span style="color:#66d9ef">for</span> k <span style="color:#f92672">in</span> key]
+    plaintext_int <span style="color:#f92672">=</span> [alpha<span style="color:#f92672">.</span>find(p) <span style="color:#66d9ef">for</span> p <span style="color:#f92672">in</span> plaintext]
+    ciphertext <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(len(plaintext_int)):
+        c <span style="color:#f92672">=</span> (plaintext_int[i] <span style="color:#f92672">+</span> key_as_int[i <span style="color:#f92672">%</span> key_length]) <span style="color:#f92672">%</span> len(alpha)
+        ciphertext <span style="color:#f92672">+=</span> alpha[c]
+    <span style="color:#66d9ef">return</span> ciphertext
 
 
-if __name__ == '__main__':
-    # name: 'aaaaaa'
-    # password: ''
-    expected_chars = '1' * 10
-    cookie = &quot;2a6f0c58475c0a7c6b3533434e395e29686b6978295c4d2176357e0d7a73530c0b66227736200b4174540c30&quot;
-    cipher = unhexlify(cookie).decode()
-    ciphers = [cipher[i:i+11] for i in range(0, len(cipher), 11)]
-    last_cipher = ciphers[-1]
-    rf_key = -1
-    for i in range(2, 11):
-        p = decryptRailFence(last_cipher, i)
-        p = decryptVig(p, ciphers[-2])
-        if expected_chars in p:
-            print(&quot;Found RF key: %d&quot; % i)
-            rf_key = i
-    print(decrypt(cipher, rf_key, &quot;0&quot;))
-    admin_val = &quot;admin=true&amp;&quot;
-    # construct the admin cookie
-    cons = encryptVig(admin_val, ciphers[-3])
-    cons = encryptRailFence(cons, rf_key)
-    ciphers[-2] = cons
-    # print admin cookie
-    print(hexlify(''.join(ciphers[:-1]).encode()))
-</code></pre>
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decrypt</span>(msg,key,iv):
+    l <span style="color:#f92672">=</span> [msg[i:i<span style="color:#f92672">+</span><span style="color:#ae81ff">11</span>] <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">0</span>,len(msg),<span style="color:#ae81ff">11</span>)]
+    pt <span style="color:#f92672">=</span> []
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> l:
+        tmp <span style="color:#f92672">=</span> decryptRailFence(i,key)
+        tmp <span style="color:#f92672">=</span> decryptVig(tmp,iv)
+        pt<span style="color:#f92672">.</span>append(tmp)
+        iv <span style="color:#f92672">=</span> i
+    <span style="color:#66d9ef">return</span> <span style="color:#e6db74">&#39;&#39;</span><span style="color:#f92672">.</span>join(pt)
+
+
+<span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;__main__&#39;</span>:
+    <span style="color:#75715e"># name: &#39;aaaaaa&#39;</span>
+    <span style="color:#75715e"># password: &#39;&#39;</span>
+    expected_chars <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;1&#39;</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">10</span>
+    cookie <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;2a6f0c58475c0a7c6b3533434e395e29686b6978295c4d2176357e0d7a73530c0b66227736200b4174540c30&#34;</span>
+    cipher <span style="color:#f92672">=</span> unhexlify(cookie)<span style="color:#f92672">.</span>decode()
+    ciphers <span style="color:#f92672">=</span> [cipher[i:i<span style="color:#f92672">+</span><span style="color:#ae81ff">11</span>] <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">0</span>, len(cipher), <span style="color:#ae81ff">11</span>)]
+    last_cipher <span style="color:#f92672">=</span> ciphers[<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>]
+    rf_key <span style="color:#f92672">=</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">11</span>):
+        p <span style="color:#f92672">=</span> decryptRailFence(last_cipher, i)
+        p <span style="color:#f92672">=</span> decryptVig(p, ciphers[<span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>])
+        <span style="color:#66d9ef">if</span> expected_chars <span style="color:#f92672">in</span> p:
+            <span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;Found RF key: </span><span style="color:#e6db74">%d</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">%</span> i)
+            rf_key <span style="color:#f92672">=</span> i
+    <span style="color:#66d9ef">print</span>(decrypt(cipher, rf_key, <span style="color:#e6db74">&#34;0&#34;</span>))
+    admin_val <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;admin=true&amp;&#34;</span>
+    <span style="color:#75715e"># construct the admin cookie</span>
+    cons <span style="color:#f92672">=</span> encryptVig(admin_val, ciphers[<span style="color:#f92672">-</span><span style="color:#ae81ff">3</span>])
+    cons <span style="color:#f92672">=</span> encryptRailFence(cons, rf_key)
+    ciphers[<span style="color:#f92672">-</span><span style="color:#ae81ff">2</span>] <span style="color:#f92672">=</span> cons
+    <span style="color:#75715e"># print admin cookie</span>
+    <span style="color:#66d9ef">print</span>(hexlify(<span style="color:#e6db74">&#39;&#39;</span><span style="color:#f92672">.</span>join(ciphers[:<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>])<span style="color:#f92672">.</span>encode()))</code></pre></div>
 
 <p><span style="color: #BEBEBE">
 Finally, I only got a new cookie by registering, constructed a valid admin cookie from it, used it to login and get the flag :)
 </span></p>
 
-<pre><code class="language-bash">[youben@ym ~]$ ncat 52.59.5.86 1111
-[1] register
-[2] login
-1
-[+] name:
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>youben@ym ~<span style="color:#f92672">]</span>$ ncat <span style="color:#ae81ff">52</span>.59.5.86 <span style="color:#ae81ff">1111</span>
+<span style="color:#f92672">[</span><span style="color:#ae81ff">1</span><span style="color:#f92672">]</span> register
+<span style="color:#f92672">[</span><span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> login
+<span style="color:#ae81ff">1</span>
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> name:
 aaaaaa
-[+] password:
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> password:
 
-[+] this is your hex-encoded cookie: 2a6f0c58475c0a7c6b3533434e395e29686b6978295c4d2176357e0d7a73530c0b66227736200b4174540c30
-[1] register
-[2] login
-2
-[+] cookie(in hex):
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> this is your hex-encoded cookie: 2a6f0c58475c0a7c6b3533434e395e29686b6978295c4d2176357e0d7a73530c0b66227736200b4174540c30
+<span style="color:#f92672">[</span><span style="color:#ae81ff">1</span><span style="color:#f92672">]</span> register
+<span style="color:#f92672">[</span><span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> login
+<span style="color:#ae81ff">2</span>
+<span style="color:#f92672">[</span>+<span style="color:#f92672">]</span> cookie<span style="color:#f92672">(</span>in hex<span style="color:#f92672">)</span>:
 2a6f0c58475c0a7c6b3533434e395e29686b6978295c4d2176357e0d4e4a22515b
-MCTF{mochi_mochi,CBC desu?!}
-[1] register
-[2] login
-</code></pre>
+MCTF<span style="color:#f92672">{</span>mochi_mochi,CBC desu?!<span style="color:#f92672">}</span>
+<span style="color:#f92672">[</span><span style="color:#ae81ff">1</span><span style="color:#f92672">]</span> register
+<span style="color:#f92672">[</span><span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> login</code></pre></div>
 
 <p><br/></p>
 
