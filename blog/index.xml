@@ -6,10 +6,19 @@
     <description>Recent content in Blogs on Ayoub Benaissa</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 02 Jan 2020 12:00:00 +0100</lastBuildDate>
+    <lastBuildDate>Sat, 15 Feb 2020 23:00:00 +0100</lastBuildDate>
     
 	<atom:link href="https://www.ayoub-benaissa.com/blog/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Homomorphic Encryption Types</title>
+      <link>https://www.ayoub-benaissa.com/blog/homomorphic-encryption-types/</link>
+      <pubDate>Sat, 15 Feb 2020 23:00:00 +0100</pubDate>
+      
+      <guid>https://www.ayoub-benaissa.com/blog/homomorphic-encryption-types/</guid>
+      <description>A previous post introduced homomorphic encryption (HE) and the challenges of applying it to deep learning. This post will dig into the three main types of HE schemes. We will first introduce the notion of a circuit, so that we can describe the properties of each type and differentiate between them.</description>
+    </item>
     
     <item>
       <title>Introduction to Homomorphic Encryption</title>
