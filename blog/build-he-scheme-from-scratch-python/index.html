@@ -331,9 +331,9 @@ $$[ct_0 + ct_1 \cdot sk]_q = [-(a \cdot sk + e) \cdot u + e_1 + \delta \cdot m +
 $$[ct_0 + ct_1 \cdot sk]_q = [-a \cdot sk \cdot u - e \cdot u + e_1 + \delta \cdot m + a \cdot sk \cdot u + e_2 \cdot sk]_q$$
 $$[ct_0 + ct_1 \cdot sk]_q = [\delta \cdot m - e \cdot u + e_1 + e_2 \cdot sk]_q$$
 So we ended up with the scaled message and some error terms, let&rsquo;s multiply by \(\displaystyle \frac{1}{\delta}\)
-$$ \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q =  [m + \frac{1}{\delta} \cdot errors]_q$$
+$$ \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk]_q =  [m + \frac{1}{\delta} \cdot errors]_q$$
 Then round to the nearest integer and go back to \(R_t\)
-$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q \rceil]_t = [\lfloor [m + \frac{1}{\delta} \cdot errors]_q \rceil]_t $$
+$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk]_q \rceil]_t = [\lfloor [m + \frac{1}{\delta} \cdot errors]_q \rceil]_t $$
 We will decrypt to the correct value \(m\) if the rounding to the nearest integer don&rsquo;t get impacted by the error terms, which means that the error terms must be bounded by \(\displaystyle \frac{1}{2}\)
 $$\frac{1}{\delta} \cdot errors \leq \frac{1}{2} \Leftrightarrow errors \leq \frac{q}{2t}$$
 So all those error terms must be bounded by \(\displaystyle \frac{q}{2t}\) for a correct decryption. The parameters \(q\) and \(t\) clearly impact the correctness of the decryption, however, they are not the unique ones, remember how these error terms are constructed, they come from probability distributions, so you must also choose those distributions carefully.
@@ -390,7 +390,7 @@ $$ct_0 = [pk_0 \cdot u + e_1 + \delta \cdot (m_1 + m_2)]_q$$
 this might seem pretty obvious &hellip; right? and indeed it is (who said that HE was complicated?), we will just need to scale our new plaintext \(m_2\) by \(\delta\) and add it to \(ct_0\).
 $$add\_plain(ct, m2) = ([ct_0 + \delta \cdot m_2]_q, ct_1)$$
 Let&rsquo;s see how the decryption will look like after the addition
-$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q \rceil]_t = [\lfloor [m_1 + m_2 + \frac{1}{\delta} \cdot (- e \cdot u + e_1 + e_2 \cdot sk)]_q \rceil]_t $$
+$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk]_q \rceil]_t = [\lfloor [m_1 + m_2 + \frac{1}{\delta} \cdot (- e \cdot u + e_1 + e_2 \cdot sk)]_q \rceil]_t $$
 As you may have already noticed, this operation doesn&rsquo;t add any extra noise, thus we can perform as many plain additions as we want without noise penalty.
 </span></p>
 
@@ -420,17 +420,17 @@ Let \(ct\) be a ciphertext encrypting a plaintext message \(m_1\), and we want t
 $$ct_0 = [pk_0 \cdot u + e_1 + \delta \cdot m_1 \cdot m_2]_q$$
 this might seem pretty obvious &hellip; right? but this time it&rsquo;s not, multiplying \(ct_0\) with \(m_2\) will result in
 $$ct_0 \cdot m_2 = [pk_0 \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2]_q$$
-expanding the public-key terms in \([ct_0 + ct_1 \cdot sk)]_q\) reveals that it won&rsquo;t decrypt correctly.
-$$[ct_0 + ct_1 \cdot sk)]_q = [pk_0 \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + pk_1 \cdot sk \cdot u + e_2 \cdot sk]_q $$
-$$[ct_0 + ct_1 \cdot sk)]_q = [-(a \cdot sk + e) \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u + e_2 \cdot sk]_q $$
-$$[ct_0 + ct_1 \cdot sk)]_q = [-a \cdot sk \cdot u \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u + e_2 \cdot sk]_q $$
+expanding the public-key terms in \([ct_0 + ct_1 \cdot sk]_q\) reveals that it won&rsquo;t decrypt correctly.
+$$[ct_0 + ct_1 \cdot sk]_q = [pk_0 \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + pk_1 \cdot sk \cdot u + e_2 \cdot sk]_q $$
+$$[ct_0 + ct_1 \cdot sk]_q = [-(a \cdot sk + e) \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u + e_2 \cdot sk]_q $$
+$$[ct_0 + ct_1 \cdot sk]_q = [-a \cdot sk \cdot u \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u + e_2 \cdot sk]_q $$
 The issue is that \(-a \cdot sk \cdot u \cdot m_2\) and \(a \cdot sk \cdot u\) won&rsquo;t cancel each other now, and that&rsquo;s a big polynomial added to our actual message \(m_1 \cdot m_2\) and decryption will clearly fail. For a correct decryption, we will also need to multiply \(ct_1\) by \(m_2\)
 $$mul\_plain(ct, m2) = ([ct_0 \cdot m_2]_q, [ct_1 \cdot m_2]_q)$$
 So that we end up with
-$$[ct_0 + ct_1 \cdot sk)]_q = [-a \cdot sk \cdot u \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u \cdot m_2 + e_2 \cdot sk \cdot m_2]_q $$
-$$[ct_0 + ct_1 \cdot sk)]_q = [\delta \cdot m_1 \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + e_2 \cdot sk \cdot m_2]_q $$
+$$[ct_0 + ct_1 \cdot sk]_q = [-a \cdot sk \cdot u \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u \cdot m_2 + e_2 \cdot sk \cdot m_2]_q $$
+$$[ct_0 + ct_1 \cdot sk]_q = [\delta \cdot m_1 \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + e_2 \cdot sk \cdot m_2]_q $$
 And the decryption circuit will result in
-$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q \rceil]_t = [\lfloor [m_1 \cdot m_2 + \frac{1}{\delta} \cdot (- e \cdot u \cdot m_2 + e_1 \cdot m_2 + e_2 \cdot sk \cdot m_2)]_q \rceil]_t $$
+$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk]_q \rceil]_t = [\lfloor [m_1 \cdot m_2 + \frac{1}{\delta} \cdot (- e \cdot u \cdot m_2 + e_1 \cdot m_2 + e_2 \cdot sk \cdot m_2)]_q \rceil]_t $$
 Compared to the plaintext addition, you can see here that our error terms got scaled up by our message \(m_2\) which means that multiplying with big values might introduce some rounding errors during decryption.
 </span></p>
 
