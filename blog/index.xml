@@ -6,10 +6,19 @@
     <description>Recent content in Blogs on Ayoub Benaissa</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 15 Feb 2020 23:00:00 +0100</lastBuildDate>
+    <lastBuildDate>Sat, 25 Apr 2020 09:00:00 +0100</lastBuildDate>
     
 	<atom:link href="https://www.ayoub-benaissa.com/blog/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Build an Homomorphic Encryption Scheme from Scratch with Python</title>
+      <link>https://www.ayoub-benaissa.com/blog/build-he-scheme-from-scratch-python/</link>
+      <pubDate>Sat, 25 Apr 2020 09:00:00 +0100</pubDate>
+      
+      <guid>https://www.ayoub-benaissa.com/blog/build-he-scheme-from-scratch-python/</guid>
+      <description>This blog post aims at explaining the basic mathematical concepts behind most of today&amp;rsquo;s homomorphic encryption (HE) schemes, and then build upon this to implement our own scheme (similar to &lt;a href=&#34;https://eprint.iacr.org/2012/144.pdf&#34;&gt;BFV&lt;/a&gt;) from scratch using Python.</description>
+    </item>
     
     <item>
       <title>Homomorphic Encryption Types</title>

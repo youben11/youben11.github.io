@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en-us" scroll-behavior="smooth"><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="description" content="This blog post aims at explaining the basic mathematical concepts behind most of today&amp;rsquo;s homomorphic encryption (HE) schemes, and then build upon this to implement our own scheme (similar to BFV) from scratch using Python.">
+    <meta name="author" content="Ayoub Benaissa">
+
+    <!-- Mobile Specific Meta -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Hugo 0.59.0" />
+
+    <title>Build an Homomorphic Encryption Scheme from Scratch with Python | Blogs</title>
+
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" type="image/x-icon" href="https://www.ayoub-benaissa.com/images/favicon.ico"/>
+
+    <!-- CSS -->
+    <!-- Fontawesome Icon font -->
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/plugins/themefisher-font/style.css">
+    <!-- bootstrap.min css -->
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/plugins/bootstrap/dist/css/bootstrap.min.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/plugins/animate-css/animate.css">
+    <!-- Magnific popup css -->
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/plugins/magnific-popup/dist/magnific-popup.css">
+    <!-- Slick Carousel -->
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/plugins/slick-carousel/slick/slick.css">
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/plugins/slick-carousel/slick/slick-theme.css">
+    <!-- Main Stylesheet -->
+    
+    <link rel="stylesheet" href="https://www.ayoub-benaissa.com/css/style.min.css" integrity="" media="screen">
+
+</head>
+<body id="body" data-spy="scroll" data-target=".navbar" data-offset="52">
+        <div id="content">
+
+<!-- Fixed Navigation -->
+<nav id="navigation" class="navbar navbar-expand-lg navigation sticky-top">
+        <div class="container">
+
+                <!-- logo -->
+                <a class="navbar-brand logo" href="https://www.ayoub-benaissa.com/">
+                        <img src="https://www.ayoub-benaissa.com/images/logos/logo.png" alt="Logo" />
+                        <span class="pl-2 font-weight-bold">Ayoub Benaissa</span>
+                </a>
+                <!-- /logo -->
+
+                <!-- responsive nav button -->
+                <button class="navbar-toggler navbar-dark" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                </button>
+                <!-- /responsive nav button -->
+
+                <!-- main nav -->
+                
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ml-auto navigation-menu">
+                                <li class="nav-item"><a class="nav-link" data-scroll href="https://www.ayoub-benaissa.com/#body">Home</a></li>
+                                
+                                <li class="nav-item"><a class="nav-link" data-scroll href="https://www.ayoub-benaissa.com/#about">About Me</a></li>
+                                
+                                <li class="nav-item"><a class="nav-link" data-scroll href="https://www.ayoub-benaissa.com/#experience">Experience</a></li>
+                                
+                                <li class="nav-item"><a class="nav-link" data-scroll href="https://www.ayoub-benaissa.com/#portfolio">Portfolio</a></li>
+                                
+                                <li class="nav-item"><a class="nav-link" data-scroll href="https://www.ayoub-benaissa.com/#blog">Blog</a></li>
+                                
+                                <li class="nav-item"><a class="nav-link" data-scroll href="https://www.ayoub-benaissa.com/#contact-me">Contact</a></li>
+                                
+                        </ul>
+                </div>
+                
+                <!-- /main nav -->
+        </div>
+
+</nav>
+<!-- End Fixed Navigation -->
+
+
+<section class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 offset-lg-2 text-center">
+                <h1>Build an Homomorphic Encryption Scheme from Scratch with Python</h1>
+                <ul class="list-inline mb-50">
+                    <li class="list-inline-item"><a href="/author/"></a></li>
+                    <li class="list-inline-item">Saturday, Apr 25, 2020</li>
+                </ul>
+                <img class="img-fluid mb-50" src="https://www.ayoub-benaissa.com/images/blog/mini/he-intro.jpg" alt="blog-image">
+            </div>
+            <div class="col-lg-8 offset-lg-2">
+                <div class="post-single-content">
+                    
+
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
+
+<p><span style="color: #BEBEBE">
+This blog post aims at explaining the basic mathematical concepts behind most of today&rsquo;s homomorphic encryption (HE) schemes, and then build upon this to implement our own scheme (similar to <a href="https://eprint.iacr.org/2012/144.pdf">BFV</a>) from scratch using Python. This post assumes general knowledge of HE and its terminology, if you have no idea what HE is, then you should check my <a href="../introduction-to-homomorphic-encryption">previous blog post</a> for a quick introduction.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+We will start by introducing the hard problem behind most of today&rsquo;s HE schemes, namely, <a href="https://en.wikipedia.org/wiki/Learning_with_errors">learning with error</a> and its variant <a href="https://en.wikipedia.org/wiki/Ring_learning_with_errors">ring learning with error</a>, if you are familiar with these concepts then you may want to jump directly to the <a href="#build-an-homomorphic-encryption-scheme">implementation section</a>, but just before, we need to agree on some basic notation.
+</span></p>
+
+<h2 id="basic-notation">Basic Notation</h2>
+
+<p><span style="color: #BEBEBE">
+We denote by \(\mathbb{Z}_q\) the set of integers \(]-q/2, q/2]\) where \(q &gt; 1\) is an integer, all integer operations will be performed \(mod \;q\) if not stated otherwise, and for simplicity, you will see me mostly deal with positive integers in \([0, q[\), but keep in mind that it&rsquo;s the same as our \(\mathbb{Z}_q\), as \(-x \equiv q - x \; (mod \; q)\) where \(x\) is a positive integer (e.g. \(-1 \equiv 6 \; (mod \; 7)\) ). An element \(v \in \mathbb{Z}_q^n\) would be simply a vector of \(n\) elements in \(\mathbb{Z}_q\).
+We will use \([\cdot]_m\) to specify that we are applying modulo \(m\), and \(\lfloor \cdot \rceil\) for rounding to the nearest integer.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+We denote by \(\langle a,b \rangle\) the inner product of two elements \(a,b \in \mathbb{Z}_q^n\) and is defined as follows
+$$\langle a,b \rangle\ = \sum_i^n{a_i \cdot b_i} \;(mod \; q)$$
+</span></p>
+
+<h2 id="learning-with-error-ring-learning-with-error">Learning With Error &amp; Ring Learning With Error</h2>
+
+<p><span style="color: #BEBEBE">
+Learning With Error (LWE) was introduced by <a href="https://cims.nyu.edu/~regev/papers/qcrypto.pdf">Regev in 2009</a> and can be defined as follows: For integers \(n \geq 1\) and \(q \geq 2\), let&rsquo;s consider the following equations
+</span></p>
+
+<p><span style="color: #BEBEBE">
+$$\langle s, a_1 \rangle + e_1 = b_1 (mod \; q)$$
+$$\langle s, a_2 \rangle + e_2 = b_2 (mod \; q)$$
+$$&hellip;$$
+$$\langle s, a_m \rangle + e_m = b_m (mod \; q)$$
+</span></p>
+
+<p><span style="color: #BEBEBE">
+where \(s\) and \(a_i\) are chosen independently and uniformly from \(\mathbb{Z}_q^n\), and \(e_i\) are chosen independently accroding to a probability distribution over \(\mathbb{Z}_q\), and \(b_i \in \mathbb{Z}_q\). The LWE problem state that it&rsquo;s hard to recover \(s\) from the pairs \((a_i, b_i)\), and it&rsquo;s on such hardness that cryptography generally lies. On the list of candidate algorithms for the <a href="https://csrc.nist.gov/Projects/post-quantum-cryptography">post-quantum cryptography standardization</a> are some that are based on LWE, so you would probably hear more about it when it would be used in key-establishement and public-key encryption.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+Ring-LWE is a variant of LWE, it&rsquo;s still based on the hardness of recovering \(s\) from the pairs \((a_i, b_i)\), and the equations are mainly the same, however, we go from the world of integers (\(\mathbb{Z}_q^n\)) to the world of <a href="https://math.stackexchange.com/questions/395028/how-to-deal-with-polynomial-quotient-rings">polynomial quotient rings</a> (\(\mathbb{Z}_q[x]/ \langle x^n + 1 \rangle\)), this means that we will deal with polynomials with coefficients in \(\mathbb{Z}_q\), and the polynomial operations are done \(mod\) some polynomial that we call the <strong>polynomial modulus</strong> (in our case: \(\langle x^n + 1 \rangle\)), so all polynomials should be of degree \(d &lt; n\), and \(x^n \equiv -1 \; (mod\; \langle x^n + 1 \rangle) \).
+</span></p>
+
+<p><span style="color: #BEBEBE">
+Let&rsquo;s now use a more <a href="https://cims.nyu.edu/~regev/papers/lwesurvey.pdf">formal definition of RLWE by Regev</a>: Let \(n\) be a power of two, and let \(q\) be a prime modulus satisfying \(q = 1 \; mod \; 2n\). Define \(R_q\) as the ring \(\mathbb{Z}_q[x]/ \langle x^n + 1 \rangle\) containing all polynomials over the field \(\mathbb{Z}_q\) in which \(x^n\) is identified with \(-1\). In ring-LWE we are given samples of the form \((a, b = a \cdot s + e) \in R_q \times R_q\) where \(s \in R_q\) is a fixed secret, \(a \in R_q\) is chosen uniformly, and \(e\) is an error term chosen independently from some error distribution over \(R_q\).
+</span></p>
+
+<p><span style="color: #BEBEBE">
+So if we want to build an HE scheme using RLWE, then our basic elements won&rsquo;t be integers, but polynomials, and you should be familiar with basic polynomial operations (addition, multiplication and modulo). I cooked up a quick refresher of polynomial operations to avoid getting off on the wrong foot, but you can just skip it if it&rsquo;s a trivial thing for you.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+<strong>Note:</strong> All the polynomials in the below examples (addition and multiplication) are in \(\mathbb{Z_{11}} / \langle x^4 + 1 \rangle \)
+</span></p>
+
+<h4 id="addition">Addition</h4>
+
+<p><span style="color: #BEBEBE">
+Let&rsquo;s add two polynomials \((a(x) = 7x^3 + 4x^2 + 9)\) and \((b(x) = x^3 + 10x^2 + 3x + 5)\)
+$$a(x) + b(x) = (7+1 \; mod \; 11)x^3 + (4+10 \; mod \; 11)x^2 + (3 \; mod \; 11)x + (9+5 \; mod \; 11)$$
+The below modulo operation is useless but I just wanted to show that all operations are performed modulo our polynomial modulus.
+$$a(x) + b(x) \; (mod \; x^4 + 1) = 8x^3 + 3x^2 + 3x + 3 $$
+</span></p>
+
+<h4 id="multiplication">Multiplication</h4>
+
+<p><span style="color: #BEBEBE">
+Now we multiply two simpler polynomials \((a(x) = 5x^2 + 3)\) and \((b(x) = 3x^3 + 4x^2)\)
+$$a(x) \cdot b(x) = 5x^2 \cdot (3x^3 + 4x^2) + 3 \cdot (3x^3 + 4x^2)$$
+$$a(x) \cdot b(x) = 4x^5 + 9x^4 + 9x^3 + x^2$$
+$$a(x) \cdot b(x) \; (mod \; x^4 + 1) = 9x^3 + x^2 + 7x + 2 $$
+\(9x^3 + x^2 + 7x + 2\) is the remainder of the division of \(a(x) \cdot b(x)\) by \(x^4 + 1\) as you may see below:
+$$4x^5 + 9x^4 + 9x^3 + x^2 = (4x + 9) \cdot (x^4 + 1) +  9x^3 + x^2 + 7x + 2$$
+</span></p>
+
+<p><span style="color: #BEBEBE">
+Don&rsquo;t panic! We will write these operations in Python in the next section so you won&rsquo;t have to do these calculations anymore.
+</span></p>
+
+<h2 id="build-an-homomorphic-encryption-scheme">Build an Homomorphic Encryption Scheme</h2>
+
+<p><span style="color: #FEBEBE">
+<strong>Disclaimer:</strong> This implementation doesn&rsquo;t neither claim to be secure nor does it follow software engineering best practices, it is designed as simple as possible for the reader to understand the concepts behind homomorphic encryption schemes.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+In this section, we go through an implementation of an homomorphic encryption scheme which is mainly inspired from <a href="https://eprint.iacr.org/2012/144.pdf">BFV</a>. We have split the whole scheme into basic functionalities, key-generation, encryption, decryption and evaluation (add and mul). Each functionality would be first explained then implemented in Python. The full implementation can be found on <a href="https://gist.github.com/youben11/f00bc95c5dde5e11218f14f7110ad289">this github gist</a>.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+We start by importing the amazing Numpy library, then we define two helper functions (<code>polyadd</code> and <code>polymul</code>) for adding and multiplying polynomials over a ring \(R_q = \mathbb{Z}_q / \langle x^n + 1 \rangle \).
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> numpy <span style="color:#f92672">as</span> np
+<span style="color:#f92672">from</span> numpy.polynomial <span style="color:#f92672">import</span> polynomial <span style="color:#66d9ef">as</span> poly
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">polymul</span>(x, y, modulus, poly_mod):
+    <span style="color:#e6db74">&#34;&#34;&#34;Add two polynoms
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        x, y: two polynoms to be added.
+</span><span style="color:#e6db74">        modulus: coefficient modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        A polynomial in Z_modulus[X]/(poly_mod).
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>int64(
+        np<span style="color:#f92672">.</span>round(poly<span style="color:#f92672">.</span>polydiv(poly<span style="color:#f92672">.</span>polymul(x, y) <span style="color:#f92672">%</span> modulus, poly_mod)[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">%</span> modulus)
+    )
+
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">polyadd</span>(x, y, modulus, poly_mod):
+    <span style="color:#e6db74">&#34;&#34;&#34;Multiply two polynoms
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        x, y: two polynoms to be multiplied.
+</span><span style="color:#e6db74">        modulus: coefficient modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        A polynomial in Z_modulus[X]/(poly_mod).
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>int64(
+        np<span style="color:#f92672">.</span>round(poly<span style="color:#f92672">.</span>polydiv(poly<span style="color:#f92672">.</span>polyadd(x, y) <span style="color:#f92672">%</span> modulus, poly_mod)[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">%</span> modulus)
+    )</code></pre></div>
+
+<h3 id="key-generation">Key Generation</h3>
+
+<p><span style="color: #BEBEBE">
+We start by generating a random secret-key \(sk\) from a probability distribution, we will use the uniform distribution over \(R_2\), which means \(sk\) will be a polynomial with coefficients being \(0\) or \(1\). For the public-key we first sample a polynomial \(a\) uniformly over \(R_q\) and a small error polynomial \(e\) from a discrete <a href="https://en.wikipedia.org/wiki/Normal_distribution">normal distribution</a> over \(R_q\). We then set the public-key to be the tuple \(pk = ([-(a \cdot sk + e)]_q, a)\). So let&rsquo;s first implement the generation of polynomials from different probability distributions.
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">gen_binary_poly</span>(size):
+    <span style="color:#e6db74">&#34;&#34;&#34;Generates a polynomial with coeffecients in [0, 1]
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        size: number of coeffcients, size-1 being the degree of the
+</span><span style="color:#e6db74">            polynomial.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        array of coefficients with the coeff[i] being 
+</span><span style="color:#e6db74">        the coeff of x ^ i.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>random<span style="color:#f92672">.</span>randint(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, size, dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64)
+
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">gen_uniform_poly</span>(size, modulus):
+    <span style="color:#e6db74">&#34;&#34;&#34;Generates a polynomial with coeffecients being integers in Z_modulus
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        size: number of coeffcients, size-1 being the degree of the
+</span><span style="color:#e6db74">            polynomial.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        array of coefficients with the coeff[i] being 
+</span><span style="color:#e6db74">        the coeff of x ^ i.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>random<span style="color:#f92672">.</span>randint(<span style="color:#ae81ff">0</span>, modulus, size, dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64)
+
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">gen_normal_poly</span>(size):
+    <span style="color:#e6db74">&#34;&#34;&#34;Generates a polynomial with coeffecients in a normal distribution
+</span><span style="color:#e6db74">    of mean 0 and a standard deviation of 2, then discretize it.
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        size: number of coeffcients, size-1 being the degree of the
+</span><span style="color:#e6db74">            polynomial.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        array of coefficients with the coeff[i] being 
+</span><span style="color:#e6db74">        the coeff of x ^ i.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>int64(np<span style="color:#f92672">.</span>random<span style="color:#f92672">.</span>normal(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>, size<span style="color:#f92672">=</span>size))</code></pre></div>
+
+<p><span style="color: #BEBEBE">
+Then we can define our key-generator using these functions
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">keygen</span>(size, modulus, poly_mod):
+    <span style="color:#e6db74">&#34;&#34;&#34;Generate a public and secret keys
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        size: size of the polynoms for the public and secret keys.
+</span><span style="color:#e6db74">        modulus: coefficient modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        Public and secret key.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    sk <span style="color:#f92672">=</span> gen_binary_poly(size)
+    a <span style="color:#f92672">=</span> gen_uniform_poly(size, modulus)
+    e <span style="color:#f92672">=</span> gen_normal_poly(size)
+    b <span style="color:#f92672">=</span> polyadd(polymul(<span style="color:#f92672">-</span>a, sk, modulus, poly_mod), <span style="color:#f92672">-</span>e, modulus, poly_mod)
+    <span style="color:#66d9ef">return</span> (b, a), sk</code></pre></div>
+
+<p><span style="color: #BEBEBE">
+The public-key <code>(b, a)</code> can then be used for encryption, and the secret-key <code>sk</code> for decryption.
+</span></p>
+
+<h3 id="encryption">Encryption</h3>
+
+<p><span style="color: #BEBEBE">
+Our scheme will support encryption of polynomials in the ring \(R_t = \mathbb{Z}_t / \langle x^n + 1 \rangle \) where \(t\) is called the <strong>plaintext modulus</strong>. In our case we will want to encrypt integers in \(\mathbb{Z}_t\) so we will need to encode this integer into the plaintext domain \(R_t\), we will simply encode an integer \(pt\) (for plaintext) as the constant polynomial \(m(x) = pt\) (e.g. \(m(x) = 5\)  will hold the value of 5 ). The encryption algorithm takes a public-key \(pk \in R_q \times R_q\) and a plaintext polynomial \(m \in R_t\) and outputs a ciphertext \(ct \in R_q \times R_q \), which is a tuple of two polynomials \(ct_0\) and \(ct_1\) and they are computed as follows:
+$$ct_0 = [pk_0 \cdot u + e_1 + \delta \cdot m]_q$$
+$$ct_1 = [pk_1 \cdot u + e_2]_q$$
+where \(u\) is sampled from the uniform distribution over \(R_2\) (same as the secret-key), \(e_1\) and \(e_2\) are sampled from a discrete normal distribution over \(R_q\) (same as the error term in key-generation), and \(\delta\) is the integer division of \(q\) over \(t\). You will get a better understanding of why we did these exact steps when you learn about the decryption algorithm, but I would advise you to stop here, write those mathematical expressions on a paper, expand the public-key terms and try to figure out the decryption algorithm, this will help you familiarize yourself with the encryption procedure and gain an intuition about it.
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">encrypt</span>(pk, size, q, t, poly_mod, pt):
+    <span style="color:#e6db74">&#34;&#34;&#34;Encrypt an integer.
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        pk: public-key.
+</span><span style="color:#e6db74">        size: size of polynomials.
+</span><span style="color:#e6db74">        q: ciphertext modulus.
+</span><span style="color:#e6db74">        t: plaintext modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">        pt: integer to be encrypted.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        Tuple representing a ciphertext.      
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    <span style="color:#75715e"># encode the integer into a plaintext polynomial</span>
+    m <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>array([pt] <span style="color:#f92672">+</span> [<span style="color:#ae81ff">0</span>] <span style="color:#f92672">*</span> (size <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>), dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64) <span style="color:#f92672">%</span> t
+    delta <span style="color:#f92672">=</span> q <span style="color:#f92672">//</span> t
+    scaled_m <span style="color:#f92672">=</span> delta <span style="color:#f92672">*</span> m  <span style="color:#f92672">%</span> q
+    e1 <span style="color:#f92672">=</span> gen_normal_poly(size)
+    e2 <span style="color:#f92672">=</span> gen_normal_poly(size)
+    u <span style="color:#f92672">=</span> gen_binary_poly(size)
+    ct0 <span style="color:#f92672">=</span> polyadd(
+            polyadd(
+                polymul(pk[<span style="color:#ae81ff">0</span>], u, q, poly_mod),
+                e1, q, poly_mod),
+            scaled_m, q, poly_mod
+        )
+    ct1 <span style="color:#f92672">=</span> polyadd(
+            polymul(pk[<span style="color:#ae81ff">1</span>], u, q, poly_mod),
+            e2, q, poly_mod
+        )
+    <span style="color:#66d9ef">return</span> (ct0, ct1)</code></pre></div>
+
+<h3 id="decryption">Decryption</h3>
+
+<p><span style="color: #BEBEBE">
+The first intuition behind decryption is that (\(pk_1 \cdot sk \approx - pk_0\)) which means that they sum-up to a really small polynomial. Let&rsquo;s try computing \([ct_0 + ct_1 \cdot sk]_q\):
+$$[ct_0 + ct_1 \cdot sk]_q = [pk_0 \cdot u + e_1 + \delta \cdot m + (pk_1 \cdot u + e_2) \cdot sk]_q$$
+$$[ct_0 + ct_1 \cdot sk]_q = [pk_0 \cdot u + e_1 + \delta \cdot m + pk_1 \cdot sk \cdot u + e_2 \cdot sk]_q$$
+We can expand our public-key terms
+$$[ct_0 + ct_1 \cdot sk]_q = [-(a \cdot sk + e) \cdot u + e_1 + \delta \cdot m + a \cdot sk \cdot u + e_2 \cdot sk]_q$$
+$$[ct_0 + ct_1 \cdot sk]_q = [-a \cdot sk \cdot u - e \cdot u + e_1 + \delta \cdot m + a \cdot sk \cdot u + e_2 \cdot sk]_q$$
+$$[ct_0 + ct_1 \cdot sk]_q = [\delta \cdot m - e \cdot u + e_1 + e_2 \cdot sk]_q$$
+So we ended up with the scaled message and some error terms, let&rsquo;s multiply by \(\displaystyle \frac{1}{\delta}\)
+$$ \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q =  [m + \frac{1}{\delta} \cdot errors]_q$$
+Then round to the nearest integer and go back to \(R_t\)
+$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q \rceil]_t = [\lfloor [m + \frac{1}{\delta} \cdot errors]_q \rceil]_t $$
+We will decrypt to the correct value \(m\) if the rounding to the nearest integer don&rsquo;t get impacted by the error terms, which means that the error terms must be bounded by \(\displaystyle \frac{1}{2}\)
+$$\frac{1}{\delta} \cdot errors \leq \frac{1}{2} \Leftrightarrow errors \leq \frac{q}{2t}$$
+So all those error terms must be bounded by \(\displaystyle \frac{q}{2t}\) for a correct decryption. The parameters \(q\) and \(t\) clearly impact the correctness of the decryption, however, they are not the unique ones, remember how these error terms are constructed, they come from probability distributions, so you must also choose those distributions carefully.
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">decrypt</span>(sk, size, q, t, poly_mod, ct):
+    <span style="color:#e6db74">&#34;&#34;&#34;Decrypt a ciphertext
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        sk: secret-key.
+</span><span style="color:#e6db74">        size: size of polynomials.
+</span><span style="color:#e6db74">        q: ciphertext modulus.
+</span><span style="color:#e6db74">        t: plaintext modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">        ct: ciphertext.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        Integer representing the plaintext.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    scaled_pt <span style="color:#f92672">=</span> polyadd(
+            polymul(ct[<span style="color:#ae81ff">1</span>], sk, q, poly_mod),
+            ct[<span style="color:#ae81ff">0</span>], q, poly_mod
+        )
+    decrypted_poly <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>round(scaled_pt <span style="color:#f92672">*</span> t <span style="color:#f92672">/</span> q) <span style="color:#f92672">%</span> t
+    <span style="color:#66d9ef">return</span> int(decrypted_poly[<span style="color:#ae81ff">0</span>])</code></pre></div>
+
+<p><span style="color: #BEBEBE">
+One can easily choose the parameters that guarantee a correct decryption after a simple encryption, but the goal of HE isn&rsquo;t just to encrypt/decrypt data, but also to compute on encrypted data (add and multiply), and computation will enlarge the error terms as we will see next, so the real question is how much operation can we perform before getting the error terms out of bound? If your encrypted computation involves 5 multiplications, you should choose your parameters accordingly, and that&rsquo;s what we call Leveled HE, the amount of computation you can perform will depend on the chosen parameters, and there are no perfect parameters that work for all cases, you must choose them according to your scheme, the security you want to achieve and the computation you want to perform.
+</span></p>
+
+<p><span style="color: #BEBEBE">
+Before going further, let&rsquo;s summarize what we have done so far and look at what&rsquo;s coming next with a graphic.
+</span></p>
+
+<p align="center">
+  <img width="80%" height="auto" src="/images/blog/he-process-simple.png">
+</p>
+
+<p><span style="color: #BEBEBE">
+Now we know that the key generation algorithm output two keys, a public-key (in blue) that can encrypt messages, and a secret-key (in black) that can decrypt messages. We know that the encryption hide our message by wrapping it into two main layers, a layer of small error terms (in orange), and a layer that can only be taken off using the secret-key (in black). As we will see in the next section, computing on those encrypted values will enlarge the orange layer, and without much care it may blow up and blind our encrypted value so that we can&rsquo;t decrypt correctly anymore.
+</span></p>
+
+<h3 id="evaluation">Evaluation</h3>
+
+<p><span style="color: #BEBEBE">
+Now that we know how to generate keys, encrypt and decrypt, let&rsquo;s learn about computing on encrypted data. Having a ciphertext in hand, we can add or multiply it with other ciphertexts or plaintexts. In this blog post, we will focus on plain operations, which means that we will add the capability to our scheme to add or multiply a ciphertext with integers (plaintexts).
+</span></p>
+
+<h4 id="addition-1">Addition</h4>
+
+<p><span style="color: #BEBEBE">
+Let \(ct\) be a ciphertext encrypting a plaintext message \(m_1\), it&rsquo;s good to recall the structure of our ciphertext
+$$ct = ([pk_0 \cdot u + e_1 + \delta \cdot m_1]_q, [pk_1 \cdot u + e_2]_q)$$
+adding a plaintext message \(m_2\) means that we should end up with a
+$$ct_0 = [pk_0 \cdot u + e_1 + \delta \cdot (m_1 + m_2)]_q$$
+this might seem pretty obvious &hellip; right? and indeed it is (who said that HE was complicated?), we will just need to scale our new plaintext \(m_2\) by \(\delta\) and add it to \(ct_0\).
+$$add\_plain(ct, m2) = ([ct_0 + \delta \cdot m_2]_q, ct_1)$$
+Let&rsquo;s see how the decryption will look like after the addition
+$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q \rceil]_t = [\lfloor [m_1 + m_2 + \frac{1}{\delta} \cdot (- e \cdot u + e_1 + e_2 \cdot sk)]_q \rceil]_t $$
+As you may have already noticed, this operation doesn&rsquo;t add any extra noise, thus we can perform as many plain additions as we want without noise penalty.
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">add_plain</span>(ct, pt, q, t, poly_mod):
+    <span style="color:#e6db74">&#34;&#34;&#34;Add a ciphertext and a plaintext.
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        ct: ciphertext.
+</span><span style="color:#e6db74">        pt: integer to add.
+</span><span style="color:#e6db74">        q: ciphertext modulus.
+</span><span style="color:#e6db74">        t: plaintext modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        Tuple representing a ciphertext.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    size <span style="color:#f92672">=</span> len(poly_mod) <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>
+    <span style="color:#75715e"># encode the integer into a plaintext polynomial</span>
+    m <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>array([pt] <span style="color:#f92672">+</span> [<span style="color:#ae81ff">0</span>] <span style="color:#f92672">*</span> (size <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>), dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64) <span style="color:#f92672">%</span> t
+    delta <span style="color:#f92672">=</span> q <span style="color:#f92672">//</span> t
+    scaled_m <span style="color:#f92672">=</span> delta <span style="color:#f92672">*</span> m  <span style="color:#f92672">%</span> q
+    new_ct0 <span style="color:#f92672">=</span> polyadd(ct[<span style="color:#ae81ff">0</span>], scaled_m, q, poly_mod)
+    <span style="color:#66d9ef">return</span> (new_ct0, ct[<span style="color:#ae81ff">1</span>])</code></pre></div>
+
+<h4 id="multiplication-1">Multiplication</h4>
+
+<p><span style="color: #BEBEBE">
+Let \(ct\) be a ciphertext encrypting a plaintext message \(m_1\), and we want to multiply it with a plaintext message \(m_2\), which means that we should end up with
+$$ct_0 = [pk_0 \cdot u + e_1 + \delta \cdot m_1 \cdot m_2]_q$$
+this might seem pretty obvious &hellip; right? but this time it&rsquo;s not, multiplying \(ct_0\) with \(m_2\) will result in
+$$ct_0 \cdot m_2 = [pk_0 \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2]_q$$
+expanding the public-key terms in \([ct_0 + ct_1 \cdot sk)]_q\) reveals that it won&rsquo;t decrypt correctly.
+$$[ct_0 + ct_1 \cdot sk)]_q = [pk_0 \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + pk_1 \cdot sk \cdot u + e_2 \cdot sk]_q $$
+$$[ct_0 + ct_1 \cdot sk)]_q = [-(a \cdot sk + e) \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u + e_2 \cdot sk]_q $$
+$$[ct_0 + ct_1 \cdot sk)]_q = [-a \cdot sk \cdot u \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u + e_2 \cdot sk]_q $$
+The issue is that \(-a \cdot sk \cdot u \cdot m_2\) and \(a \cdot sk \cdot u\) won&rsquo;t cancel each other now, and that&rsquo;s a big polynomial added to our actual message \(m_1 \cdot m_2\) and decryption will clearly fail. For a correct decryption, we will also need to multiply \(ct_1\) by \(m_2\)
+$$mul\_plain(ct, m2) = ([ct_0 \cdot m_2]_q, [ct_1 \cdot m_2]_q)$$
+So that we end up with
+$$[ct_0 + ct_1 \cdot sk)]_q = [-a \cdot sk \cdot u \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + \delta \cdot m_1 \cdot m_2 + a \cdot sk \cdot u \cdot m_2 + e_2 \cdot sk \cdot m_2]_q $$
+$$[ct_0 + ct_1 \cdot sk)]_q = [\delta \cdot m_1 \cdot m_2 - e \cdot u \cdot m_2 + e_1 \cdot m_2 + e_2 \cdot sk \cdot m_2]_q $$
+And the decryption circuit will result in
+$$[\lfloor \frac{1}{\delta} \cdot [ct_0 + ct_1 \cdot sk)]_q \rceil]_t = [\lfloor [m_1 \cdot m_2 + \frac{1}{\delta} \cdot (- e \cdot u \cdot m_2 + e_1 \cdot m_2 + e_2 \cdot sk \cdot m_2)]_q \rceil]_t $$
+Compared to the plaintext addition, you can see here that our error terms got scaled up by our message \(m_2\) which means that multiplying with big values might introduce some rounding errors during decryption.
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">mul_plain</span>(ct, pt, q, t, poly_mod):
+    <span style="color:#e6db74">&#34;&#34;&#34;Multiply a ciphertext and a plaintext.
+</span><span style="color:#e6db74">    Args:
+</span><span style="color:#e6db74">        ct: ciphertext.
+</span><span style="color:#e6db74">        pt: integer to multiply.
+</span><span style="color:#e6db74">        q: ciphertext modulus.
+</span><span style="color:#e6db74">        t: plaintext modulus.
+</span><span style="color:#e6db74">        poly_mod: polynomial modulus.
+</span><span style="color:#e6db74">    Returns:
+</span><span style="color:#e6db74">        Tuple representing a ciphertext.
+</span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
+    size <span style="color:#f92672">=</span> len(poly_mod) <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>
+    <span style="color:#75715e"># encode the integer into a plaintext polynomial</span>
+    m <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>array([pt] <span style="color:#f92672">+</span> [<span style="color:#ae81ff">0</span>] <span style="color:#f92672">*</span> (size <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>), dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64) <span style="color:#f92672">%</span> t
+    new_c0 <span style="color:#f92672">=</span> polymul(ct[<span style="color:#ae81ff">0</span>], m, q, poly_mod)
+    new_c1 <span style="color:#f92672">=</span> polymul(ct[<span style="color:#ae81ff">1</span>], m, q, poly_mod)
+    <span style="color:#66d9ef">return</span> (new_c0, new_c1)</code></pre></div>
+
+<p><span style="color: #BEBEBE">
+Having all the functionalities implemented now, let&rsquo;s enjoy the HE magic
+</span></p>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#75715e"># Scheme&#39;s parameters</span>
+<span style="color:#75715e"># polynomial modulus degree</span>
+n <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span><span style="color:#f92672">**</span><span style="color:#ae81ff">4</span>
+<span style="color:#75715e"># ciphertext modulus</span>
+q <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span><span style="color:#f92672">**</span><span style="color:#ae81ff">15</span>
+<span style="color:#75715e"># plaintext modulus</span>
+t <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span><span style="color:#f92672">**</span><span style="color:#ae81ff">8</span>
+<span style="color:#75715e"># polynomial modulus</span>
+poly_mod <span style="color:#f92672">=</span> np<span style="color:#f92672">.</span>array([<span style="color:#ae81ff">1</span>] <span style="color:#f92672">+</span> [<span style="color:#ae81ff">0</span>] <span style="color:#f92672">*</span> (n <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">+</span> [<span style="color:#ae81ff">1</span>])
+<span style="color:#75715e"># Keygen</span>
+pk, sk <span style="color:#f92672">=</span> keygen(n, q, poly_mod)
+<span style="color:#75715e"># Encryption</span>
+pt1, pt2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">73</span>, <span style="color:#ae81ff">20</span>
+cst1, cst2 <span style="color:#f92672">=</span> <span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">5</span>
+ct1 <span style="color:#f92672">=</span> encrypt(pk, n, q, t, poly_mod, pt1)
+ct2 <span style="color:#f92672">=</span> encrypt(pk, n, q, t, poly_mod, pt2)
+
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Ciphertext ct1({}):&#34;</span><span style="color:#f92672">.</span>format(pt1))
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;&#34;</span>)
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\t</span><span style="color:#e6db74"> ct1_0:&#34;</span>, ct1[<span style="color:#ae81ff">0</span>])
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\t</span><span style="color:#e6db74"> ct1_1:&#34;</span>, ct1[<span style="color:#ae81ff">1</span>])
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;&#34;</span>)
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Ciphertext ct2({}):&#34;</span><span style="color:#f92672">.</span>format(pt2))
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;&#34;</span>)
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\t</span><span style="color:#e6db74"> ct1_0:&#34;</span>, ct2[<span style="color:#ae81ff">0</span>])
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\t</span><span style="color:#e6db74"> ct1_1:&#34;</span>, ct2[<span style="color:#ae81ff">1</span>])
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;&#34;</span>)
+
+<span style="color:#75715e"># Evaluation</span>
+ct3 <span style="color:#f92672">=</span> add_plain(ct1, cst1, q, t, poly_mod)
+ct4 <span style="color:#f92672">=</span> mul_plain(ct2, cst2, q, t, poly_mod)
+
+<span style="color:#75715e"># Decryption</span>
+decrypted_ct3 <span style="color:#f92672">=</span> decrypt(sk, n, q, t, poly_mod, ct3)
+decrypted_ct4 <span style="color:#f92672">=</span> decrypt(sk, n, q, t, poly_mod, ct4)
+
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Decrypted ct3(ct1 + {}): {}&#34;</span><span style="color:#f92672">.</span>format(cst1, decrypted_ct3))
+<span style="color:#66d9ef">print</span>(<span style="color:#e6db74">&#34;[+] Decrypted ct4(ct2 * {}): {}&#34;</span><span style="color:#f92672">.</span>format(cst2, decrypted_ct4))</code></pre></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p><span style="color: #BEBEBE">
+You should be proud of having walked all the way down understanding the math behind HE, and implementing a scheme from scratch. I really hope it was fruitful! Feedbacks and questions are welcome!
+</span></p>
+
+                    
+                        
+
+<div class="social-share pt-4">
+        <h4>Share:</h4>
+        
+        <a class="resp-sharing-button__link" href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f" target="_blank" rel="noopener" aria-label="">
+            <div class="resp-sharing-button resp-sharing-button--facebook resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V.5h-4.33C10.24.5 9.5 3.44 9.5 5.32v2.15h-3v4h3v12h5v-12h3.85l.42-4z"/></svg>
+            </div>
+        </div>
+    </a>
+
+    
+    <a class="resp-sharing-button__link" href="https://twitter.com/intent/tweet/?text=Build%20an%20Homomorphic%20Encryption%20Scheme%20from%20Scratch%20with%20Python&amp;url=https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f" target="_blank" rel="noopener" aria-label="">
+        <div class="resp-sharing-button resp-sharing-button--twitter resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23.44 4.83c-.8.37-1.5.38-2.22.02.93-.56.98-.96 1.32-2.02-.88.52-1.86.9-2.9 1.1-.82-.88-2-1.43-3.3-1.43-2.5 0-4.55 2.04-4.55 4.54 0 .36.03.7.1 1.04-3.77-.2-7.12-2-9.36-4.75-.4.67-.6 1.45-.6 2.3 0 1.56.8 2.95 2 3.77-.74-.03-1.44-.23-2.05-.57v.06c0 2.2 1.56 4.03 3.64 4.44-.67.2-1.37.2-2.06.08.58 1.8 2.26 3.12 4.25 3.16C5.78 18.1 3.37 18.74 1 18.46c2 1.3 4.4 2.04 6.97 2.04 8.35 0 12.92-6.92 12.92-12.93 0-.2 0-.4-.02-.6.9-.63 1.96-1.22 2.56-2.14z"/></svg>
+        </div>
+    </div>
+</a>
+
+
+<a class="resp-sharing-button__link" href="https://plus.google.com/share?url=https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f" target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--google resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11.37 12.93c-.73-.52-1.4-1.27-1.4-1.5 0-.43.03-.63.98-1.37 1.23-.97 1.9-2.23 1.9-3.57 0-1.22-.36-2.3-1-3.05h.5c.1 0 .2-.04.28-.1l1.36-.98c.16-.12.23-.34.17-.54-.07-.2-.25-.33-.46-.33H7.6c-.66 0-1.34.12-2 .35-2.23.76-3.78 2.66-3.78 4.6 0 2.76 2.13 4.85 5 4.9-.07.23-.1.45-.1.66 0 .43.1.83.33 1.22h-.08c-2.72 0-5.17 1.34-6.1 3.32-.25.52-.37 1.04-.37 1.56 0 .5.13.98.38 1.44.6 1.04 1.84 1.86 3.55 2.28.87.23 1.82.34 2.8.34.88 0 1.7-.1 2.5-.34 2.4-.7 3.97-2.48 3.97-4.54 0-1.97-.63-3.15-2.33-4.35zm-7.7 4.5c0-1.42 1.8-2.68 3.9-2.68h.05c.45 0 .9.07 1.3.2l.42.28c.96.66 1.6 1.1 1.77 1.8.05.16.07.33.07.5 0 1.8-1.33 2.7-3.96 2.7-1.98 0-3.54-1.23-3.54-2.8zM5.54 3.9c.33-.38.75-.58 1.23-.58h.05c1.35.05 2.64 1.55 2.88 3.35.14 1.02-.08 1.97-.6 2.55-.32.37-.74.56-1.23.56h-.03c-1.32-.04-2.63-1.6-2.87-3.4-.13-1 .08-1.92.58-2.5zM23.5 9.5h-3v-3h-2v3h-3v2h3v3h2v-3h3"/></svg>
+    </div>
+</div>
+</a>
+
+
+<a class="resp-sharing-button__link" href="mailto:?subject=Build%20an%20Homomorphic%20Encryption%20Scheme%20from%20Scratch%20with%20Python&amp;body=https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f" target="_self" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--email resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 4H2C.9 4 0 4.9 0 6v12c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM7.25 14.43l-3.5 2c-.08.05-.17.07-.25.07-.17 0-.34-.1-.43-.25-.14-.24-.06-.55.18-.68l3.5-2c.24-.14.55-.06.68.18.14.24.06.55-.18.68zm4.75.07c-.1 0-.2-.03-.27-.08l-8.5-5.5c-.23-.15-.3-.46-.15-.7.15-.22.46-.3.7-.14L12 13.4l8.23-5.32c.23-.15.54-.08.7.15.14.23.07.54-.16.7l-8.5 5.5c-.08.04-.17.07-.27.07zm8.93 1.75c-.1.16-.26.25-.43.25-.08 0-.17-.02-.25-.07l-3.5-2c-.24-.13-.32-.44-.18-.68s.44-.32.68-.18l3.5 2c.24.13.32.44.18.68z"/></svg>
+    </div>
+</div>
+</a>
+
+
+<a class="resp-sharing-button__link" href="https://reddit.com/submit/?url=https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f&amp;resubmit=true&amp;title=Build%20an%20Homomorphic%20Encryption%20Scheme%20from%20Scratch%20with%20Python" target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--reddit resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M24 11.5c0-1.65-1.35-3-3-3-.96 0-1.86.48-2.42 1.24-1.64-1-3.75-1.64-6.07-1.72.08-1.1.4-3.05 1.52-3.7.72-.4 1.73-.24 3 .5C17.2 6.3 18.46 7.5 20 7.5c1.65 0 3-1.35 3-3s-1.35-3-3-3c-1.38 0-2.54.94-2.88 2.22-1.43-.72-2.64-.8-3.6-.25-1.64.94-1.95 3.47-2 4.55-2.33.08-4.45.7-6.1 1.72C4.86 8.98 3.96 8.5 3 8.5c-1.65 0-3 1.35-3 3 0 1.32.84 2.44 2.05 2.84-.03.22-.05.44-.05.66 0 3.86 4.5 7 10 7s10-3.14 10-7c0-.22-.02-.44-.05-.66 1.2-.4 2.05-1.54 2.05-2.84zM2.3 13.37C1.5 13.07 1 12.35 1 11.5c0-1.1.9-2 2-2 .64 0 1.22.32 1.6.82-1.1.85-1.92 1.9-2.3 3.05zm3.7.13c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm9.8 4.8c-1.08.63-2.42.96-3.8.96-1.4 0-2.74-.34-3.8-.95-.24-.13-.32-.44-.2-.68.15-.24.46-.32.7-.18 1.83 1.06 4.76 1.06 6.6 0 .23-.13.53-.05.67.2.14.23.06.54-.18.67zm.2-2.8c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm5.7-2.13c-.38-1.16-1.2-2.2-2.3-3.05.38-.5.97-.82 1.6-.82 1.1 0 2 .9 2 2 0 .84-.53 1.57-1.3 1.87z"/></svg>
+    </div>
+</div>
+</a>
+
+
+<a class="resp-sharing-button__link" href="whatsapp://send?text=Build%20an%20Homomorphic%20Encryption%20Scheme%20from%20Scratch%20with%20Python%20https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f" target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--whatsapp resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.1 3.9C17.9 1.7 15 .5 12 .5 5.8.5.7 5.6.7 11.9c0 2 .5 3.9 1.5 5.6L.6 23.4l6-1.6c1.6.9 3.5 1.3 5.4 1.3 6.3 0 11.4-5.1 11.4-11.4-.1-2.8-1.2-5.7-3.3-7.8zM12 21.4c-1.7 0-3.3-.5-4.8-1.3l-.4-.2-3.5 1 1-3.4L4 17c-1-1.5-1.4-3.2-1.4-5.1 0-5.2 4.2-9.4 9.4-9.4 2.5 0 4.9 1 6.7 2.8 1.8 1.8 2.8 4.2 2.8 6.7-.1 5.2-4.3 9.4-9.5 9.4zm5.1-7.1c-.3-.1-1.7-.9-1.9-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1s-1.2-.5-2.3-1.4c-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6s.3-.3.4-.5c.2-.1.3-.3.4-.5.1-.2 0-.4 0-.5C10 9 9.3 7.6 9 7c-.1-.4-.4-.3-.5-.3h-.6s-.4.1-.7.3c-.3.3-1 1-1 2.4s1 2.8 1.1 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.3-.3-.4-.6-.5z"/></svg>
+    </div>
+</div>
+</a>
+
+
+<a class="resp-sharing-button__link" href="https://telegram.me/share/url?text=Build%20an%20Homomorphic%20Encryption%20Scheme%20from%20Scratch%20with%20Python&amp;url=https%3a%2f%2fwww.ayoub-benaissa.com%2fblog%2fbuild-he-scheme-from-scratch-python%2f" target="_blank" rel="noopener" aria-label="">
+    <div class="resp-sharing-button resp-sharing-button--telegram resp-sharing-button--small"><div aria-hidden="true" class="resp-sharing-button__icon resp-sharing-button__icon--solid">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M.707 8.475C.275 8.64 0 9.508 0 9.508s.284.867.718 1.03l5.09 1.897 1.986 6.38a1.102 1.102 0 0 0 1.75.527l2.96-2.41a.405.405 0 0 1 .494-.013l5.34 3.87a1.1 1.1 0 0 0 1.046.135 1.1 1.1 0 0 0 .682-.803l3.91-18.795A1.102 1.102 0 0 0 22.5.075L.706 8.475z"/></svg>
+    </div>
+</div>
+</a>
+
+</div>
+                    
+                    <br/>
+                    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "discussion-youben-blog" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+                    
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+        </div><!-- end Contact Area -->
+<footer id="footer" class="bg-one">
+	<div class="container">
+		<div class="row wow fadeInUp" data-wow-duration="500ms">
+			<div class="col-xl-12">
+
+				<!-- Footer Social Links -->
+				<div class="social-icon">
+					<ul class="list-inline">
+						
+						<li class="list-inline-item"><a href="https://twitter.com/y0uben11"><i class="tf-ion-social-twitter"></i></a></li>
+						
+						<li class="list-inline-item"><a href="mailto:ayoub.benaissa.ab@gmail.com"><i class="tf-ion-android-mail"></i></a></li>
+						
+						<li class="list-inline-item"><a href="https://github.com/youben11"><i class="tf-ion-social-github"></i></a></li>
+						
+						<li class="list-inline-item"><a href="https://www.linkedin.com/in/ayoub-benaissa/"><i class="tf-ion-social-linkedin"></i></a></li>
+						
+						<li class="list-inline-item"><a href="https://www.freelancer.com/u/youben11"><i class="tf-ion-social-facebook"></i></a></li>
+						
+					</ul>
+				</div>
+
+				<!-- copyright -->
+				<div class="copyright text-center">
+					<a href="https://www.ayoub-benaissa.com/">
+						<img src="https://www.ayoub-benaissa.com/images/logos/logo.png" alt="Meghna" />
+					</a>
+					<br>
+					<p>Design And Developed by <a href="http://www.themefisher.com">  Themefisher Team  </a> and adapted by <a href="#">Ayoub Benaissa</a>. Copyright &copy; <script>
+							document.write(new Date().getFullYear())
+						</script>. All Rights Reserved.</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</footer>
+<!-- /footer -->
+
+<!-- Essential Scripts -->
+
+		<!-- Main jQuery -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/jquery/dist/jquery.min.js"></script>
+		<!-- Bootstrap 4.3 + Popper -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+		<!-- Slick Carousel -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/slick-carousel/slick/slick.min.js"></script>
+		<!-- Portfolio Filtering -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/filterzr/jquery.filterizr.min.js"></script>
+		<!-- Magnific popup -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/magnific-popup/dist/jquery.magnific-popup.min.js"></script>
+		<!-- Google Map API -->
+		<script type="text/javascript"  src="https://www.ayoub-benaissa.com/"></script>
+		<!-- Number Counter Script -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/count-to/jquery.countTo.js"></script>
+		<!-- wow.min Script -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/wow/dist/wow.min.js"></script>
+		<!-- Scroll behavior polyfill -->
+		
+		<script src="https://www.ayoub-benaissa.com/js/scroll-behavior-polyfill.min.js"></script>
+		<!-- Sweet Alert -->
+		<script type="text/javascript" src="https://www.ayoub-benaissa.com/plugins/sweet-alert/sweetalert.min.js"></script>
+		<!-- Custom js -->
+		
+		<script src="https://www.ayoub-benaissa.com/js/script.min.js"></script>
+
+    </body>
+</html>
+</body>
+</html>
