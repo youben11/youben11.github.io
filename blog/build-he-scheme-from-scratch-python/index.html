@@ -230,7 +230,7 @@ We start by generating a random secret-key \(sk\) from a probability distributio
 </span><span style="color:#e6db74">        array of coefficients with the coeff[i] being 
 </span><span style="color:#e6db74">        the coeff of x ^ i.
 </span><span style="color:#e6db74">    &#34;&#34;&#34;</span>
-    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>random<span style="color:#f92672">.</span>randint(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, size, dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64)
+    <span style="color:#66d9ef">return</span> np<span style="color:#f92672">.</span>random<span style="color:#f92672">.</span>randint(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">2</span>, size, dtype<span style="color:#f92672">=</span>np<span style="color:#f92672">.</span>int64)
 
 
 <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">gen_uniform_poly</span>(size, modulus):
