@@ -128,7 +128,7 @@ $$\langle s, a_m \rangle + e_m = b_m (mod \; q)$$
 </span></p>
 
 <p><span style="color: #BEBEBE">
-where \(s\) and \(a_i\) are chosen independently and uniformly from \(\mathbb{Z}_q^n\), and \(e_i\) are chosen independently accroding to a probability distribution over \(\mathbb{Z}_q\), and \(b_i \in \mathbb{Z}_q\). The LWE problem state that it&rsquo;s hard to recover \(s\) from the pairs \((a_i, b_i)\), and it&rsquo;s on such hardness that cryptography generally lies. On the list of candidate algorithms for the <a href="https://csrc.nist.gov/Projects/post-quantum-cryptography">post-quantum cryptography standardization</a> are some that are based on LWE, so you would probably hear more about it when it would be used in key-establishement and public-key encryption.
+where \(s\) and \(a_i\) are chosen independently and uniformly from \(\mathbb{Z}_q^n\), and \(e_i\) are chosen independently according to a probability distribution over \(\mathbb{Z}_q\), and \(b_i \in \mathbb{Z}_q\). The LWE problem state that it&rsquo;s hard to recover \(s\) from the pairs \((a_i, b_i)\), and it&rsquo;s on such hardness that cryptography generally lies. On the list of candidate algorithms for the <a href="https://csrc.nist.gov/Projects/post-quantum-cryptography">post-quantum cryptography standardization</a> are some that are based on LWE, so you would probably hear more about it when it would be used in key-establishement and public-key encryption.
 </span></p>
 
 <p><span style="color: #BEBEBE">
@@ -371,7 +371,7 @@ Before going further, let&rsquo;s summarize what we have done so far and look at
 </p>
 
 <p><span style="color: #BEBEBE">
-Now we know that the key generation algorithm output two keys, a public-key (in blue) that can encrypt messages, and a secret-key (in black) that can decrypt messages. We know that the encryption hide our message by wrapping it into two main layers, a layer of small error terms (in orange), and a layer that can only be taken off using the secret-key (in black). As we will see in the next section, computing on those encrypted values will enlarge the orange layer, and without much care it may blow up and blind our encrypted value so that we can&rsquo;t decrypt correctly anymore.
+Now we know that the key generation algorithm outputs two keys, a public-key (in blue) that can encrypt messages, and a secret-key (in black) that can decrypt messages. We know that the encryption hides our message by wrapping it into two main layers, a layer of small error terms (in orange), and a layer that can only be taken off using the secret-key (in black). As we will see in the next section, computing on those encrypted values will enlarge the orange layer, and without much care it may blow up and blind our encrypted value so that we can&rsquo;t decrypt correctly anymore.
 </span></p>
 
 <h3 id="evaluation">Evaluation</h3>
