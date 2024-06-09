@@ -1,0 +1,1 @@
+import{_ as t,o,c as s,ah as c}from"./entry.CFXAnef3.js";const r={},a={class:"text-body-1 mt-4"};function n(e,_){return o(),s("p",a,[c(e.$slots,"default")])}const d=t(r,[["render",n]]);export{d as default};
