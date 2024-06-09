@@ -1,1 +1,0 @@
-import{_ as t,o,c as s,ah as c}from"./entry.H-zxptzW.js";const r={},a={class:"ml-4 my-4 text-body-1"};function n(e,_){return o(),s("ul",a,[c(e.$slots,"default",{},void 0,!0)])}const l=t(r,[["render",n],["__scopeId","data-v-7139779b"]]);export{l as default};
