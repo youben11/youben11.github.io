@@ -1,1 +1,0 @@
-import{_ as e,o,c as s,ah as c}from"./entry.DyLzQRbj.js";const n={},r={class:"text-h6 font-weight-light font-italic mt-8 mb-4"};function a(t,l){return o(),s("h5",r,[c(t.$slots,"default")])}const f=e(n,[["render",a]]);export{f as default};

@@ -1,0 +1,1 @@
+import{_ as e,o,c as s,aq as c}from"./entry.C45HWE8R.js";const n={},r={class:"text-h6 font-weight-light font-italic mt-8 mb-4"};function a(t,l){return o(),s("h5",r,[c(t.$slots,"default")])}const f=e(n,[["render",a]]);export{f as default};

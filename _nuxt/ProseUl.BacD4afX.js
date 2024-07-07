@@ -1,0 +1,1 @@
+import{_ as t,o,c as s,aq as c}from"./entry.C45HWE8R.js";const r={},a={class:"ml-4 my-4 text-body-1"};function n(e,_){return o(),s("ul",a,[c(e.$slots,"default",{},void 0,!0)])}const l=t(r,[["render",n],["__scopeId","data-v-7139779b"]]);export{l as default};
