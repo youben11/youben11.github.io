@@ -1,1 +1,0 @@
-import{_ as e}from"./_plugin-vue_export-helper.DlAUqK2U.js";import{o,c as s,O as r}from"./entry.B2FStRP4.js";const c={},n={class:"text-h6 font-weight-light font-italic mt-8 mb-4"};function a(t,f){return o(),s("h5",n,[r(t.$slots,"default")])}const i=e(c,[["render",a]]);export{i as default};

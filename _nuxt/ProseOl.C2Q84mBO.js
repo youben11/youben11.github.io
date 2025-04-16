@@ -1,1 +1,0 @@
-import{_ as o}from"./_plugin-vue_export-helper.DlAUqK2U.js";import{o as s,c as t,O as r}from"./entry.B2FStRP4.js";const c={},a={class:"ml-4"};function n(e,_){return s(),t("ol",a,[r(e.$slots,"default",{},void 0,!0)])}const f=o(c,[["render",n],["__scopeId","data-v-397e5e9a"]]);export{f as default};

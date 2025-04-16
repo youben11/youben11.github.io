@@ -1,1 +1,0 @@
-import{_ as o}from"./_plugin-vue_export-helper.DlAUqK2U.js";import{o as t,c as s,O as r}from"./entry.B2FStRP4.js";const c={},n={class:"ml-4 my-4 text-body-1"};function a(e,_){return t(),s("ul",n,[r(e.$slots,"default",{},void 0,!0)])}const l=o(c,[["render",a],["__scopeId","data-v-862f3f53"]]);export{l as default};

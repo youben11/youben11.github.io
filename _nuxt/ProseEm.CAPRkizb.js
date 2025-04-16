@@ -1,1 +1,0 @@
-import{_ as o}from"./_plugin-vue_export-helper.DlAUqK2U.js";import{o as t,c as s,O as r}from"./entry.B2FStRP4.js";const c={},n={class:"font-italic"};function a(e,_){return t(),s("em",n,[r(e.$slots,"default")])}const m=o(c,[["render",a]]);export{m as default};
