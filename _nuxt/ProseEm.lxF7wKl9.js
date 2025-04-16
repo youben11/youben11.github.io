@@ -1,1 +1,0 @@
-import{_ as o,o as s,c as t,aq as c}from"./entry.C45HWE8R.js";const r={},a={class:"font-italic"};function n(e,_){return s(),t("em",a,[c(e.$slots,"default")])}const f=o(r,[["render",n]]);export{f as default};
